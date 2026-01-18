@@ -1,0 +1,35 @@
+{
+  "name": "juggernaut-booking-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Red Bull Juggernaut Event Car Booking System",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "node src/database/migrate.js",
+    "seed": "node src/database/seed.js",
+    "test": "jest --coverage"
+  },
+  "keywords": [
+    "booking",
+    "event-management",
+    "red-bull"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "nodemailer": "^6.9.7",
+    "uuid": "^9.0.1",
+    "express-validator": "^7.0.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0"
+  }
+}
