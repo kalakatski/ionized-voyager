@@ -14,17 +14,27 @@ const pool = new Pool({
 });
 
 // Test connection
+let mockMode = process.env.USE_MOCK_DB === 'true';
+
 pool.on('connect', () => {
     console.log('✓ Database connected successfully');
+    mockMode = false;
 });
 
 pool.on('error', (err) => {
     console.error('Unexpected database error:', err);
-    process.exit(-1);
+    if (!mockMode) {
+        console.warn('⚠️ Switching to MOCK MODE due to database error.');
+        mockMode = true;
+    }
 });
 
 // Helper function to execute queries
 const query = async (text, params) => {
+    if (mockMode) {
+        console.log('🧪 MOCK QUERY (Ignored):', text.substring(0, 100));
+        return { rows: [], rowCount: 0 };
+    }
     const start = Date.now();
     try {
         const res = await pool.query(text, params);
@@ -37,6 +47,9 @@ const query = async (text, params) => {
     }
 };
 
+const isMockMode = () => mockMode;
+const setMockMode = (val) => { mockMode = val; };
+
 // Helper function to get a client for transactions
 const getClient = async () => {
     const client = await pool.connect();
@@ -46,5 +59,7 @@ const getClient = async () => {
 module.exports = {
     pool,
     query,
-    getClient
+    getClient,
+    isMockMode,
+    setMockMode
 };

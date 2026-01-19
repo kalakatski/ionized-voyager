@@ -1,4 +1,4 @@
-const { query, getClient } = require('../config/database');
+const { query, getClient, isMockMode } = require('../config/database');
 
 /**
  * Check if a car is available for a date range
@@ -171,24 +171,33 @@ async function updateCarStatus(carId) {
  */
 async function getUnifiedCalendar(startDate, endDate) {
     try {
-        // Get all cars
-        const carsResult = await query('SELECT * FROM event_cars ORDER BY car_number');
-        const cars = carsResult.rows;
+        let cars;
+        if (isMockMode()) {
+            cars = [
+                { id: 1, car_number: 0, name: 'Event Car 0', registration: 'REDBULL-0', current_region: 'EU North', status: 'Available' },
+                { id: 2, car_number: 1, name: 'Event Car 1', registration: 'REDBULL-1', current_region: 'EU West', status: 'Available' },
+                { id: 3, car_number: 2, name: 'Event Car 2', registration: 'REDBULL-2', current_region: 'EU East', status: 'Available' }
+            ];
+        } else {
+            // Get all cars
+            const carsResult = await query('SELECT * FROM event_cars ORDER BY car_number');
+            cars = carsResult.rows;
+        }
 
         const calendar = [];
 
         for (const car of cars) {
-            const availability = await getCarAvailability(car.id, startDate, endDate);
+            const availability = await getCarAvailability(car.id || car.carId, startDate, endDate);
 
             calendar.push({
-                carId: car.id,
-                carNumber: car.car_number,
-                carName: car.name,
+                carId: car.id || car.carId,
+                carNumber: car.car_number || car.carNumber,
+                carName: car.name || car.carName,
                 registration: car.registration,
-                currentRegion: car.current_region,
-                currentLocation: car.current_location,
+                currentRegion: car.current_region || car.currentRegion,
+                currentLocation: car.current_location || car.currentLocation,
                 status: car.status,
-                preferredRegions: car.preferred_regions,
+                preferredRegions: car.preferred_regions || car.preferredRegions,
                 availability
             });
         }
