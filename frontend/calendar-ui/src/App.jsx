@@ -331,7 +331,8 @@ const Calendar = () => {
 
   const getVisibleDates = (baseDate) => {
     const start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-    const end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+    // Show 2 Months: Current Month + Next Month
+    const end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 2, 0);
     const days = [];
     let current = new Date(start);
     while (current <= end) {
