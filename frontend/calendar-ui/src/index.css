@@ -50,7 +50,7 @@ body {
 }
 
 .date-cell-header {
-  min-width: 40px;
+  min-width: 60px;
   /* Minimum width per day */
   flex: 1;
   text-align: center;
@@ -124,7 +124,7 @@ body {
 
 .date-cell {
   flex: 1;
-  min-width: 40px;
+  min-width: 60px;
   /* Match header */
   border-right: 1px solid #ebecf0;
   cursor: pointer;
