@@ -8,6 +8,7 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'juggernaut_booking',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
