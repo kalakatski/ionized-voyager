@@ -12,10 +12,15 @@ const INTERNAL_RECIPIENTS = [
 ];
 
 // Create email transporter
+// Create email transporter
+const isGmail = (process.env.SMTP_HOST || '').includes('gmail');
+
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
+    ...(isGmail ? { service: 'gmail' } : {
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_SECURE === 'true',
+    }),
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASSWORD
