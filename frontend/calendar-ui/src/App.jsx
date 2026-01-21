@@ -316,6 +316,7 @@ const BookingDetailsModal = ({ isOpen, onClose, booking, onAction }) => {
 const Calendar = () => {
   const [data, setData] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
 
@@ -537,9 +538,14 @@ const Calendar = () => {
           </div>
         </div>
 
-        <button className="btn btn-primary" onClick={() => { setSelectedCar(null); setSelectedDate(null); setModalOpen(true); }}>
-          + New Booking
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn" style={{ background: '#ff991f', color: 'white' }} onClick={() => setServiceModalOpen(true)}>
+            Service
+          </button>
+          <button className="btn btn-primary" onClick={() => { setSelectedCar(null); setSelectedDate(null); setModalOpen(true); }}>
+            + New Booking
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -655,8 +661,67 @@ const Calendar = () => {
         booking={selectedBooking}
         onAction={handleBookingAction}
       />
+      {/* Service Modal */}
+      {serviceModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2 className="modal-title">Schedule Service</h2>
+              <button className="close-btn" onClick={() => setServiceModalOpen(false)}>×</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const fData = new FormData(e.target);
+              const payload = {
+                carId: fData.get('carId'),
+                startDate: fData.get('startDate'),
+                endDate: fData.get('endDate'),
+                blockReason: 'Service',
+                blockDetails: fData.get('details')
+              };
+
+              try {
+                const res = await fetch(`${API_BASE_URL}/api/blocks`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('Failed to create block');
+                setServiceModalOpen(false);
+                loadData();
+              } catch (err) {
+                alert(err.message);
+              }
+            }}>
+              <div className="form-group">
+                <label className="form-label">Car</label>
+                <select name="carId" required className="form-select">
+                  {data.map(c => <option key={c.carId} value={c.carId}>{c.carName} ({c.registration})</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Dates</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <input type="date" name="startDate" required className="form-input" defaultValue={formatDate(new Date())} />
+                  <input type="date" name="endDate" required className="form-input" defaultValue={formatDate(new Date())} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Service Details</label>
+                <textarea name="details" className="form-textarea" placeholder="Describe the service/maintenance..."></textarea>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button type="button" className="btn" onClick={() => setServiceModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Schedule Service</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div >
   );
 };
 
 export default Calendar;
+
