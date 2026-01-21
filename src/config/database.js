@@ -8,10 +8,20 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'juggernaut_booking',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    // Enable SSL for any non-localhost connection (e.g. Neon.tech), or if explicitly properly set
+    ssl: (process.env.NODE_ENV === 'production' || (process.env.DB_HOST && process.env.DB_HOST !== 'localhost'))
+        ? { rejectUnauthorized: false }
+        : false,
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+});
+
+// Logs for debugging (exclude sensitive info)
+console.log('Database Configuration:', {
+    host: process.env.DB_HOST || 'localhost',
+    ssl: (process.env.NODE_ENV === 'production' || (process.env.DB_HOST && process.env.DB_HOST !== 'localhost')),
+    node_env: process.env.NODE_ENV
 });
 
 // Test connection
