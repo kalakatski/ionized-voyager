@@ -81,7 +81,7 @@ router.get('/debug', async (req, res) => {
     }
 });
 
-router.post('/migrate', async (req, res) => {
+router.get('/migrate', async (req, res) => {
     try {
         await dbQuery('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS region TEXT');
         res.json({ message: 'Migration successful: Added region column' });
