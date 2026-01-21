@@ -1,5 +1,6 @@
 -- Juggernaut Event Car Booking System Database Schema
 -- PostgreSQL 12+
+-- UPDATED: Single car per booking, strict event types, enhanced email logging
 
 -- Drop existing tables if they exist (for development)
 DROP TABLE IF EXISTS notifications CASCADE;
@@ -24,14 +25,16 @@ CREATE TABLE event_cars (
 );
 
 -- Bookings Table
--- Stores all event bookings with client and event details
+-- UPDATED: Each booking now references exactly ONE car_id
+-- UPDATED: event_type now has strict enum constraint
 CREATE TABLE bookings (
     id SERIAL PRIMARY KEY,
     booking_reference VARCHAR(20) UNIQUE NOT NULL,
     event_name VARCHAR(200) NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
+    event_type VARCHAR(100) NOT NULL CHECK (event_type IN ('REDBULL_EVENT', 'THIRD_PARTY_EVENT', 'COLLEGE_FEST')),
     client_name VARCHAR(200) NOT NULL,
     client_email VARCHAR(200) NOT NULL,
+    car_id INTEGER NOT NULL REFERENCES event_cars(id) ON DELETE RESTRICT,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'Confirmed' CHECK (status IN ('Confirmed', 'Cancelled')),
@@ -45,21 +48,7 @@ CREATE TABLE bookings (
 -- Index for performance on date range queries
 CREATE INDEX idx_bookings_dates_status ON bookings(start_date, end_date, status);
 CREATE INDEX idx_bookings_reference ON bookings(booking_reference);
-
--- Booking Cars Junction Table
--- Links bookings to event cars (many-to-many relationship)
-CREATE TABLE booking_cars (
-    id SERIAL PRIMARY KEY,
-    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
-    car_id INTEGER NOT NULL REFERENCES event_cars(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    UNIQUE(booking_id, car_id)
-);
-
--- Index for availability checks
-CREATE INDEX idx_booking_cars_car_id ON booking_cars(car_id);
-CREATE INDEX idx_booking_cars_booking_id ON booking_cars(booking_id);
+CREATE INDEX idx_bookings_car_id ON bookings(car_id);
 
 -- Date Blocks Table
 -- Manual date blocks for cars (service, breakdown, or manual holds)
@@ -79,22 +68,27 @@ CREATE TABLE date_blocks (
 CREATE INDEX idx_date_blocks_car_dates ON date_blocks(car_id, start_date, end_date);
 
 -- Notifications Table
--- Audit log for all sent notifications
+-- UPDATED: Enhanced email delivery logging with error tracking
 CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
     notification_type VARCHAR(50) NOT NULL,
     recipient_email VARCHAR(200) NOT NULL,
     recipient_type VARCHAR(20) NOT NULL CHECK (recipient_type IN ('client', 'admin', 'operations')),
+    booking_id INTEGER REFERENCES bookings(id) ON DELETE SET NULL,
     booking_reference VARCHAR(20),
     subject TEXT NOT NULL,
     body TEXT NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'sent' CHECK (status IN ('sent', 'failed'))
+    status VARCHAR(20) DEFAULT 'sent' CHECK (status IN ('sent', 'failed')),
+    error_message TEXT,
+    all_recipients TEXT
 );
 
 -- Index for notification queries
-CREATE INDEX idx_notifications_booking ON notifications(booking_reference);
+CREATE INDEX idx_notifications_booking_id ON notifications(booking_id);
+CREATE INDEX idx_notifications_booking_ref ON notifications(booking_reference);
 CREATE INDEX idx_notifications_type ON notifications(notification_type);
+CREATE INDEX idx_notifications_status ON notifications(status);
 
 -- Auto-update timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()

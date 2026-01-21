@@ -10,8 +10,7 @@ async function checkCarAvailability(carId, startDate, endDate, excludeBookingId 
         const bookingQuery = `
             SELECT b.id, b.booking_reference, b.event_name, b.start_date, b.end_date
             FROM bookings b
-            INNER JOIN booking_cars bc ON b.id = bc.booking_id
-            WHERE bc.car_id = $1
+            WHERE b.car_id = $1
               AND b.status = 'Confirmed'
               AND ($2::integer IS NULL OR b.id != $2::integer)
               AND (
@@ -72,8 +71,7 @@ async function getCarAvailability(carId, startDate, endDate) {
             const bookingQuery = `
                 SELECT b.booking_reference, b.event_name, b.event_type, b.client_name
                 FROM bookings b
-                INNER JOIN booking_cars bc ON b.id = bc.booking_id
-                WHERE bc.car_id = $1
+                WHERE b.car_id = $1
                   AND b.status = 'Confirmed'
                   AND b.start_date <= $2
                   AND b.end_date >= $2
@@ -147,8 +145,7 @@ async function updateCarStatus(carId) {
         const bookingQuery = `
             SELECT COUNT(*) as count
             FROM bookings b
-            INNER JOIN booking_cars bc ON b.id = bc.booking_id
-            WHERE bc.car_id = $1
+            WHERE b.car_id = $1
               AND b.status = 'Confirmed'
               AND b.start_date <= $2
               AND b.end_date >= $2
@@ -174,9 +171,9 @@ async function getUnifiedCalendar(startDate, endDate) {
         let cars;
         if (isMockMode()) {
             cars = [
-                { id: 1, car_number: 0, name: 'Event Car 0', registration: 'REDBULL-0', current_region: 'EU North', status: 'Available' },
-                { id: 2, car_number: 1, name: 'Event Car 1', registration: 'REDBULL-1', current_region: 'EU West', status: 'Available' },
-                { id: 3, car_number: 2, name: 'Event Car 2', registration: 'REDBULL-2', current_region: 'EU East', status: 'Available' }
+                { id: 1, car_number: 0, name: 'Event Car 0', registration: 'MH 02 FG 0232', current_region: 'West', status: 'Available' },
+                { id: 2, car_number: 1, name: 'Event Car 1', registration: 'MH 04 LE 5911', current_region: 'North', status: 'Available' },
+                { id: 3, car_number: 2, name: 'Event Car 2', registration: 'MH 04 LE 5912', current_region: 'East', status: 'Available' }
             ];
         } else {
             // Get all cars

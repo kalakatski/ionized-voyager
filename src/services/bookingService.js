@@ -5,6 +5,7 @@ const notificationService = require('./notificationService');
 
 /**
  * Create a new booking with transaction support
+ * UPDATED: Each booking now references exactly ONE car_id
  */
 async function createBooking(bookingData) {
     const client = await getClient();
@@ -12,30 +13,28 @@ async function createBooking(bookingData) {
     try {
         await client.query('BEGIN');
 
-        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carIds, notes } = bookingData;
+        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carId, notes } = bookingData;
 
-        // Step 1: Check all cars are available
-        for (const carId of carIds) {
-            const { isAvailable, conflicts } = await checkCarAvailability(carId, startDate, endDate);
+        // Step 1: Check car is available
+        const { isAvailable, conflicts } = await checkCarAvailability(carId, startDate, endDate);
 
-            if (!isAvailable) {
-                // Send conflict notification before rolling back
-                await notificationService.sendConflictNotification(bookingData, carId, conflicts);
-                throw {
-                    code: 'BOOKING_CONFLICT',
-                    message: `Car ${carId} is not available for the selected dates`,
-                    conflicts
-                };
-            }
+        if (!isAvailable) {
+            // Send conflict notification before rolling back
+            await notificationService.sendConflictNotification(bookingData, carId, conflicts);
+            throw {
+                code: 'BOOKING_CONFLICT',
+                message: `Car ${carId} is not available for the selected dates`,
+                conflicts
+            };
         }
 
         // Step 2: Generate booking reference
         const bookingReference = generateBookingReference();
 
-        // Step 3: Create booking record
+        // Step 3: Create booking record with car_id
         const bookingQuery = `
-            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, start_date, end_date, notes, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Confirmed')
+            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, car_id, start_date, end_date, notes, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Confirmed')
             RETURNING *
         `;
 
@@ -45,6 +44,7 @@ async function createBooking(bookingData) {
             eventType,
             clientName,
             clientEmail,
+            carId,
             startDate,
             endDate,
             notes || null
@@ -52,20 +52,13 @@ async function createBooking(bookingData) {
 
         const booking = bookingResult.rows[0];
 
-        // Step 4: Link cars to booking
-        for (const carId of carIds) {
-            await client.query(
-                'INSERT INTO booking_cars (booking_id, car_id) VALUES ($1, $2)',
-                [booking.id, carId]
-            );
-
-            // Update car status
-            await updateCarStatus(carId);
-        }
+        // Step 4: Update car status
+        await updateCarStatus(carId);
 
         await client.query('COMMIT');
 
         // Step 5: Send notifications (outside transaction)
+        // This will not break booking creation if it fails
         await notificationService.sendBookingNotification('booking_created', booking);
 
         // Return booking with car details
@@ -82,23 +75,22 @@ async function createBooking(bookingData) {
 
 /**
  * Get booking by reference
+ * UPDATED: Uses direct car_id join instead of booking_cars junction table
  */
 async function getBookingByReference(bookingReference) {
     try {
         const bookingQuery = `
             SELECT b.*,
-                   json_agg(json_build_object(
+                   json_build_object(
                        'carId', ec.id,
                        'carNumber', ec.car_number,
                        'carName', ec.name,
                        'registration', ec.registration,
                        'currentRegion', ec.current_region
-                   )) as cars
+                   ) as car
             FROM bookings b
-            LEFT JOIN booking_cars bc ON b.id = bc.booking_id
-            LEFT JOIN event_cars ec ON bc.car_id = ec.id
+            LEFT JOIN event_cars ec ON b.car_id = ec.id
             WHERE b.booking_reference = $1
-            GROUP BY b.id
         `;
 
         const result = await query(bookingQuery, [bookingReference]);
@@ -116,6 +108,7 @@ async function getBookingByReference(bookingReference) {
 
 /**
  * Get all bookings with filters
+ * UPDATED: Uses direct car_id join instead of booking_cars junction table
  */
 async function getAllBookings(filters = {}) {
     try {
@@ -142,7 +135,7 @@ async function getAllBookings(filters = {}) {
         }
 
         if (filters.carId) {
-            whereConditions.push(`bc.car_id = $${paramIndex}`);
+            whereConditions.push(`b.car_id = $${paramIndex}`);
             params.push(filters.carId);
             paramIndex++;
         }
@@ -153,17 +146,15 @@ async function getAllBookings(filters = {}) {
 
         const bookingsQuery = `
             SELECT b.*,
-                   json_agg(json_build_object(
+                   json_build_object(
                        'carId', ec.id,
                        'carNumber', ec.car_number,
                        'carName', ec.name,
                        'registration', ec.registration
-                   )) as cars
+                   ) as car
             FROM bookings b
-            LEFT JOIN booking_cars bc ON b.id = bc.booking_id
-            LEFT JOIN event_cars ec ON bc.car_id = ec.id
+            LEFT JOIN event_cars ec ON b.car_id = ec.id
             ${whereClause}
-            GROUP BY b.id
             ORDER BY b.start_date DESC, b.created_at DESC
         `;
 
@@ -177,6 +168,7 @@ async function getAllBookings(filters = {}) {
 
 /**
  * Update a booking
+ * UPDATED: Handles single carId instead of carIds array
  */
 async function updateBooking(bookingReference, updateData) {
     const client = await getClient();
@@ -191,29 +183,27 @@ async function updateBooking(bookingReference, updateData) {
             throw { code: 'NOT_FOUND', message: 'Booking not found' };
         }
 
-        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carIds, notes } = updateData;
+        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carId, notes } = updateData;
 
-        // If cars or dates are changing, check availability
-        if (carIds || startDate || endDate) {
-            const newCarIds = carIds || currentBooking.cars.map(c => c.carId);
+        // If car or dates are changing, check availability
+        if (carId || startDate || endDate) {
+            const newCarId = carId || currentBooking.car_id;
             const newStartDate = startDate || currentBooking.start_date;
             const newEndDate = endDate || currentBooking.end_date;
 
-            for (const carId of newCarIds) {
-                const { isAvailable, conflicts } = await checkCarAvailability(
-                    carId,
-                    newStartDate,
-                    newEndDate,
-                    currentBooking.id
-                );
+            const { isAvailable, conflicts } = await checkCarAvailability(
+                newCarId,
+                newStartDate,
+                newEndDate,
+                currentBooking.id
+            );
 
-                if (!isAvailable) {
-                    throw {
-                        code: 'BOOKING_CONFLICT',
-                        message: `Car ${carId} is not available for the selected dates`,
-                        conflicts
-                    };
-                }
+            if (!isAvailable) {
+                throw {
+                    code: 'BOOKING_CONFLICT',
+                    message: `Car ${newCarId} is not available for the selected dates`,
+                    conflicts
+                };
             }
         }
 
@@ -243,6 +233,12 @@ async function updateBooking(bookingReference, updateData) {
         if (clientEmail) {
             updates.push(`client_email = $${paramIndex}`);
             params.push(clientEmail);
+            paramIndex++;
+        }
+
+        if (carId) {
+            updates.push(`car_id = $${paramIndex}`);
+            params.push(carId);
             paramIndex++;
         }
 
@@ -279,25 +275,14 @@ async function updateBooking(bookingReference, updateData) {
             await client.query(updateQuery, params);
         }
 
-        // Update car associations if needed
-        if (carIds) {
-            // Remove old associations
-            await client.query('DELETE FROM booking_cars WHERE booking_id = $1', [currentBooking.id]);
-
-            // Add new associations
-            for (const carId of carIds) {
-                await client.query(
-                    'INSERT INTO booking_cars (booking_id, car_id) VALUES ($1, $2)',
-                    [currentBooking.id, carId]
-                );
-
-                await updateCarStatus(carId);
-            }
-
-            // Update status of old cars
-            for (const car of currentBooking.cars) {
-                await updateCarStatus(car.carId);
-            }
+        // Update car statuses if car changed
+        if (carId && carId !== currentBooking.car_id) {
+            // Update both old and new car statuses
+            await updateCarStatus(currentBooking.car_id);
+            await updateCarStatus(carId);
+        } else if (carId) {
+            // Just update current car status
+            await updateCarStatus(carId);
         }
 
         await client.query('COMMIT');
@@ -319,6 +304,7 @@ async function updateBooking(bookingReference, updateData) {
 
 /**
  * Cancel a booking (soft delete)
+ * UPDATED: Works with single car_id
  */
 async function cancelBooking(bookingReference) {
     const client = await getClient();
@@ -338,9 +324,9 @@ async function cancelBooking(bookingReference) {
             ['Cancelled', bookingReference]
         );
 
-        // Update car statuses to free the calendar
-        for (const car of booking.cars) {
-            await updateCarStatus(car.carId);
+        // Update car status to free the calendar
+        if (booking.car_id) {
+            await updateCarStatus(booking.car_id);
         }
 
         await client.query('COMMIT');

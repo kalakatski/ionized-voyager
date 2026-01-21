@@ -25,7 +25,10 @@ router.put('/cars/:id/status', carController.updateCarStatusManual);
 // --- Booking Routes ---
 router.post('/bookings', [
     body('eventName').notEmpty().withMessage('Event name is required'),
-    body('eventType').notEmpty().withMessage('Event type is required'),
+    body('eventType')
+        .notEmpty().withMessage('Event type is required')
+        .isIn(['REDBULL_EVENT', 'THIRD_PARTY_EVENT', 'COLLEGE_FEST'])
+        .withMessage('Event type must be one of: REDBULL_EVENT, THIRD_PARTY_EVENT, COLLEGE_FEST'),
     body('clientName').notEmpty().withMessage('Client name is required'),
     body('clientEmail').isEmail().withMessage('Valid client email is required'),
     body('startDate').custom(isValidDate).withMessage('Start date must be YYYY-MM-DD'),
@@ -35,7 +38,7 @@ router.post('/bookings', [
         }
         return true;
     }),
-    body('carIds').isArray({ min: 1 }).withMessage('At least one car must be selected')
+    body('carId').isInt({ min: 1 }).withMessage('A valid car ID must be selected')
 ], bookingController.createBooking);
 
 router.get('/bookings', bookingController.getBookings);

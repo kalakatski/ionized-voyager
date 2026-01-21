@@ -24,6 +24,7 @@ const transporter = nodemailer.createTransport({
 
 /**
  * Send email
+ * UPDATED: Returns status for proper logging
  */
 async function sendEmail(to, subject, body, cc = []) {
     try {
@@ -38,22 +39,23 @@ async function sendEmail(to, subject, body, cc = []) {
 
         const info = await transporter.sendMail(mailOptions);
         console.log('Email sent:', info.messageId);
-        return info;
+        return { success: true, messageId: info.messageId, error: null };
     } catch (error) {
         console.error('Error sending email:', error);
-        throw error;
+        return { success: false, messageId: null, error: error.message };
     }
 }
 
 /**
  * Log notification to database
+ * UPDATED: Enhanced with booking_id, all_recipients, and error tracking
  */
-async function logNotification(type, recipientEmail, recipientType, bookingReference, subject, body) {
+async function logNotification(type, recipientEmail, recipientType, bookingId, bookingReference, subject, body, status = 'sent', errorMessage = null, allRecipients = null) {
     try {
         await query(
-            `INSERT INTO notifications (notification_type, recipient_email, recipient_type, booking_reference, subject, body, status)
-             VALUES ($1, $2, $3, $4, $5, $6, 'sent')`,
-            [type, recipientEmail, recipientType, bookingReference, subject, body]
+            `INSERT INTO notifications (notification_type, recipient_email, recipient_type, booking_id, booking_reference, subject, body, status, error_message, all_recipients)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            [type, recipientEmail, recipientType, bookingId, bookingReference, subject, body, status, errorMessage, allRecipients]
         );
     } catch (error) {
         console.error('Error logging notification:', error);
@@ -175,47 +177,79 @@ Red Bull Juggernaut Booking System
 
 /**
  * Send booking notification
+ * UPDATED: Handles single car, enhanced email logging with status tracking
  */
 async function sendBookingNotification(type, booking) {
     try {
-        const cars = await getBookingCars(booking.id);
-        const carNames = cars.map(c => c.name).join(', ');
+        // Get car information - booking now has car_id directly
+        const car = booking.car || { name: 'Unknown', registration: 'N/A', current_region: 'N/A' };
+        const carInfo = [car]; // Wrap in array for email template compatibility
 
         let subject, clientBody, adminBody;
 
         switch (type) {
             case 'booking_created':
                 subject = `Booking Confirmed - ${booking.booking_reference}`;
-                clientBody = generateClientBookingEmail(booking, cars, 'created');
-                adminBody = generateAdminBookingEmail(booking, cars, 'created');
+                clientBody = generateClientBookingEmail(booking, carInfo, 'created');
+                adminBody = generateAdminBookingEmail(booking, carInfo, 'created');
                 break;
 
             case 'booking_edited':
                 subject = `Booking Updated - ${booking.booking_reference}`;
-                clientBody = generateClientBookingEmail(booking, cars, 'updated');
-                adminBody = generateAdminBookingEmail(booking, cars, 'updated');
+                clientBody = generateClientBookingEmail(booking, carInfo, 'updated');
+                adminBody = generateAdminBookingEmail(booking, carInfo, 'updated');
                 break;
 
             case 'booking_cancelled':
                 subject = `Booking Cancelled - ${booking.booking_reference}`;
-                clientBody = generateClientBookingEmail(booking, cars, 'cancelled');
-                adminBody = generateAdminBookingEmail(booking, cars, 'cancelled');
+                clientBody = generateClientBookingEmail(booking, carInfo, 'cancelled');
+                adminBody = generateAdminBookingEmail(booking, carInfo, 'cancelled');
                 break;
         }
 
         // Send single email with client in TO and internal in CC
         // We use adminBody for everyone to ensure all recipients have full context
-        await sendEmail(booking.client_email, subject, adminBody, INTERNAL_RECIPIENTS);
+        const allRecipients = [booking.client_email, ...INTERNAL_RECIPIENTS].join(', ');
+        const emailResult = await sendEmail(booking.client_email, subject, adminBody, INTERNAL_RECIPIENTS);
+
+        const status = emailResult.success ? 'sent' : 'failed';
+        const errorMessage = emailResult.error || null;
 
         // Log for client
-        await logNotification(type, booking.client_email, 'client', booking.booking_reference, subject, adminBody);
+        await logNotification(
+            type,
+            booking.client_email,
+            'client',
+            booking.id,
+            booking.booking_reference,
+            subject,
+            adminBody,
+            status,
+            errorMessage,
+            allRecipients
+        );
 
         // Log for internal recipients
         for (const email of INTERNAL_RECIPIENTS) {
-            await logNotification(type, email, 'admin', booking.booking_reference, subject, adminBody);
+            await logNotification(
+                type,
+                email,
+                'admin',
+                booking.id,
+                booking.booking_reference,
+                subject,
+                adminBody,
+                status,
+                errorMessage,
+                allRecipients
+            );
         }
 
-        console.log(`✓ Notifications sent for ${type}: ${booking.booking_reference} to ${booking.client_email} + CC internal`);
+        if (emailResult.success) {
+            console.log(`✓ Notifications sent for ${type}: ${booking.booking_reference} to ${allRecipients}`);
+        } else {
+            console.error(`✗ Notification failed for ${type}: ${booking.booking_reference}. Error: ${errorMessage}`);
+        }
     } catch (error) {
         console.error('Error sending booking notification:', error);
         // Don't throw - notification failure shouldn't break the booking process

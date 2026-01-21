@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
+import API_BASE_URL from './config/api';
 
 // --- Utility Functions ---
 
-const formatDate = (date) => date.toISOString().split('T')[0];
+const formatDate = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const getMonthDates = () => {
   const dates = [];
@@ -23,12 +30,12 @@ const getMonthDates = () => {
 const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) => {
   const [formData, setFormData] = useState({
     eventName: '',
-    eventType: 'Marketing',
+    eventType: 'REDBULL_EVENT',
     clientName: '',
     clientEmail: '',
     startDate: preselectedDate || formatDate(new Date()),
     endDate: preselectedDate || formatDate(new Date()),
-    carIds: carId ? [carId] : [],
+    carId: carId || null,
     notes: ''
   });
   const [cars, setCars] = useState([]);
@@ -39,7 +46,7 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
   useEffect(() => {
     // We can use the calendar endpoint to get car metadata
     const today = new Date().toISOString().split('T')[0];
-    fetch(`http://localhost:3000/api/calendar?startDate=${today}&endDate=${today}`)
+    fetch(`${API_BASE_URL}/api/calendar?startDate=${today}&endDate=${today}`)
       .then(res => res.json())
       .then(data => setCars(data))
       .catch(err => console.error("Failed to fetch cars", err));
@@ -51,7 +58,7 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
         ...prev,
         startDate: preselectedDate || prev.startDate,
         endDate: preselectedDate || prev.endDate,
-        carIds: carId ? [carId] : []
+        carId: carId || prev.carId
       }));
       setError(null);
     }
@@ -65,11 +72,11 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
     // Map form data to integers
     const payload = {
       ...formData,
-      carIds: formData.carIds.map(Number)
+      carId: Number(formData.carId)
     };
 
     try {
-      const response = await fetch('http://localhost:3000/api/bookings', {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,10 +133,9 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
               value={formData.eventType}
               onChange={e => setFormData({ ...formData, eventType: e.target.value })}
             >
-              <option value="Marketing">Marketing</option>
-              <option value="Sales">Sales</option>
-              <option value="Internal">Internal</option>
-              <option value="Other">Other</option>
+              <option value="REDBULL_EVENT">Red Bull Event</option>
+              <option value="THIRD_PARTY_EVENT">Third Party Event</option>
+              <option value="COLLEGE_FEST">College Fest</option>
             </select>
           </div>
 
@@ -178,22 +184,24 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Cars (Multi-select)</label>
-            <div style={{ maxHeight: 100, overflowY: 'auto', border: '1px solid #dfe1e6', padding: 8, borderRadius: 3 }}>
+            <label className="form-label">Select Car</label>
+            <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #dfe1e6', padding: 8, borderRadius: 3 }}>
               {cars.length > 0 ? (
                 cars.map(car => (
-                  <label key={car.carId} style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>
+                  <label key={car.carId} style={{ display: 'flex', alignItems: 'center', marginBottom: 6, fontSize: 13, cursor: 'pointer' }}>
                     <input
-                      type="checkbox"
-                      checked={formData.carIds.includes(car.carId)}
-                      onChange={e => {
-                        const newIds = e.target.checked
-                          ? [...formData.carIds, car.carId]
-                          : formData.carIds.filter(c => c !== car.carId);
-                        setFormData({ ...formData, carIds: newIds });
-                      }}
+                      type="radio"
+                      name="carSelection"
+                      value={car.carId}
+                      checked={formData.carId === car.carId}
+                      onChange={() => setFormData({ ...formData, carId: car.carId })}
+                      style={{ marginRight: 8 }}
+                      required
                     />
-                    {car.carName}
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{car.carName}</div>
+                      <div style={{ fontSize: 11, color: '#666' }}>{car.registration}</div>
+                    </div>
                   </label>
                 ))
               ) : (
@@ -213,7 +221,7 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
 
 const BookingDetailsModal = ({ isOpen, onClose, booking, onAction }) => {
   if (!isOpen || !booking) return null;
-  const car = booking.cars && booking.cars[0];
+  const car = booking.car; // Simplified access
 
   return (
     <div className="modal-overlay">
@@ -237,7 +245,7 @@ const BookingDetailsModal = ({ isOpen, onClose, booking, onAction }) => {
         <div className="form-group">
           <label className="form-label">Event</label>
           <div style={{ fontSize: 16, fontWeight: 600, color: '#172b4d' }}>{booking.event_name}</div>
-          <div style={{ fontSize: 12, color: '#5e6c84' }}>Type: {booking.eventType || booking.event_type}</div>
+          <div style={{ fontSize: 12, color: '#5e6c84' }}>Type: {booking.event_type}</div>
         </div>
 
         <div className="form-group">
@@ -268,9 +276,17 @@ const BookingDetailsModal = ({ isOpen, onClose, booking, onAction }) => {
 
         <div style={{ marginTop: 24, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           {booking.status !== 'Cancelled' && (
-            <button className="btn" style={{ color: '#d32f2f', border: '1px solid #ffebe6', background: '#fff' }} onClick={() => {
-              if (confirm('Are you sure you want to CANCEL this booking? This action cannot be undone.')) onAction('cancel', booking);
-            }}>Cancel Booking</button>
+            <button
+              className="btn cancel-btn"
+              style={{ color: '#d32f2f', border: '1px solid #ffebe6', background: '#fff' }}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to CANCEL this booking? This action cannot be undone.')) {
+                  onAction('cancel', booking);
+                }
+              }}
+            >
+              Cancel Booking
+            </button>
           )}
           <button className="btn btn-primary" onClick={() => alert('Editing will be enabled in the next update.')}>
             Edit Details
@@ -313,7 +329,7 @@ const Calendar = () => {
     setDates(days);
 
     try {
-      const res = await fetch(`http://localhost:3000/api/calendar?startDate=${startStr}&endDate=${endStr}`);
+      const res = await fetch(`${API_BASE_URL}/api/calendar?startDate=${startStr}&endDate=${endStr}`);
       if (!res.ok) throw new Error('Failed to fetch calendar');
       const json = await res.json();
       setData(json);
@@ -329,7 +345,7 @@ const Calendar = () => {
 
   const handleCellClick = (carId, dateStr, dayDetails) => {
     if (dayDetails?.booking) {
-      fetch(`http://localhost:3000/api/bookings/${dayDetails.booking.booking_reference}`)
+      fetch(`${API_BASE_URL}/api/bookings/${dayDetails.booking.booking_reference}`)
         .then(res => res.json())
         .then(booking => {
           setSelectedBooking(booking);
@@ -348,7 +364,7 @@ const Calendar = () => {
   const handleBookingAction = async (action, booking) => {
     if (action === 'cancel') {
       try {
-        const res = await fetch(`http://localhost:3000/api/bookings/${booking.booking_reference}`, {
+        const res = await fetch(`${API_BASE_URL}/api/bookings/${booking.booking_reference}`, {
           method: 'DELETE'
         });
         if (res.ok) {
@@ -398,7 +414,10 @@ const Calendar = () => {
             } else break;
           }
 
-          const endDate = new Date(new Date(day.date).getTime() + (duration - 1) * 86400000).toISOString().split('T')[0];
+          const durationDays = duration;
+          const endD = new Date(day.date);
+          endD.setDate(endD.getDate() + durationDays - 1);
+          const endDateStr = formatDate(endD);
 
           bars.push(
             <div
@@ -406,11 +425,11 @@ const Calendar = () => {
               className="booking-bar"
               style={{
                 left: `${index * 100 / dates.length}%`,
-                width: `${(duration * 100 / dates.length) - 0.5}%`,
+                width: `${(durationDays * 100 / dates.length) - 0.5}%`,
                 pointerEvents: 'auto',
                 cursor: 'pointer'
               }}
-              title={`Event: ${day.booking.event_name}\nRef: ${day.booking.booking_reference}\nClient: ${day.booking.client_name || 'N/A'}\nDates: ${day.date} to ${endDate}`}
+              title={`Event: ${day.booking.event_name}\nRef: ${day.booking.booking_reference}\nClient: ${day.booking.client_name || 'N/A'}\nDates: ${day.date} to ${endDateStr}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleCellClick(car.carId, day.date, day);
@@ -462,7 +481,12 @@ const Calendar = () => {
     <div className="calendar-container">
       <div className="calendar-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-          <h1>Juggernaut Calendar</h1>
+          <img
+            src="/juggernaut-logo.png"
+            alt="Juggernaut Logo"
+            style={{ height: '108px', width: 'auto' }}
+          />
+          <h1 style={{ margin: 0 }}>Red Bull Juggernaut Calendar</h1>
 
           <div className="calendar-controls" style={{ display: 'flex', gap: 8 }}>
             <button className="btn" onClick={() => changeMonth(-1)}>&lt;</button>
@@ -558,15 +582,22 @@ const Calendar = () => {
       <div style={{ marginTop: 20, padding: '12px 16px', background: '#f4f5f7', borderRadius: 8, fontSize: 13, display: 'flex', gap: 24, color: '#42526e', border: '1px solid #ebecf0' }}>
         <div style={{ fontWeight: 600, color: '#172b4d' }}>LEGEND:</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 14, height: 14, background: '#3b82f6', borderRadius: 3 }}></span>
+          <span style={{ display: 'inline-block', width: 14, height: 14, background: '#3b82f6', borderRadius: 3 }}></span>
           Confirmed Booking
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 14, height: 14, border: '1px solid #ff991f', background: 'repeating-linear-gradient(45deg, #fffae6, #fffae6 6px, #fff0b3 6px, #fff0b3 12px)', borderRadius: 3 }}></span>
+          <span style={{
+            display: 'inline-block',
+            width: 14,
+            height: 14,
+            border: '1px solid #ff991f',
+            background: 'repeating-linear-gradient(45deg, #fffae6, #fffae6 6px, #fff0b3 6px, #fff0b3 12px)',
+            borderRadius: 3
+          }}></span>
           Blocked / Service
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 14, height: 14, background: '#e3fcef', border: '1px solid #36b37e', borderRadius: 3 }}></span>
+          <span style={{ display: 'inline-block', width: 14, height: 14, background: '#e3fcef', border: '1px solid #36b37e', borderRadius: 3 }}></span>
           Today's Date
         </div>
       </div>

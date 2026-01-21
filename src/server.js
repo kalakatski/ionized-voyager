@@ -38,13 +38,18 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`
+// Export app for Vercel serverless functions
+module.exports = app;
+
+// Start Server (only in development, not on Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`
 🚀 Juggernaut Booking System Backend
 ------------------------------------
 Server is running on port ${PORT}
 API endpoint: http://localhost:${PORT}/api
 Health check: http://localhost:${PORT}/health
-    `);
-});
+        `);
+    });
+}
