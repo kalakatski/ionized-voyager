@@ -277,7 +277,7 @@ const BookingDetailsModal = ({ isOpen, onClose, booking, onAction }) => {
               <div style={{ fontWeight: 600, fontSize: 14 }}>{car.carName} (#{car.carNumber})</div>
               <div style={{ fontSize: 12, color: '#5e6c84' }}>{car.registration}</div>
               <div style={{ fontSize: 12, color: '#5e6c84', marginTop: 4 }}>
-                <span style={{ fontWeight: 500 }}>Region:</span> {car.currentRegion || 'Pan India'}
+                <span style={{ fontWeight: 500 }}>Event Region:</span> {booking.region || 'N/A'}
               </div>
             </div>
           </div>
