@@ -91,9 +91,9 @@ router.get('/migrate', async (req, res) => {
 });
 
 const notificationService = require('../services/notificationService');
-router.post('/debug/email', async (req, res) => {
+router.get('/debug/email', async (req, res) => {
     try {
-        const { to } = req.body;
+        const to = req.query.to; // Read from URL parameter
         if (!to) return res.status(400).json({ error: 'Recipient email required' });
 
         const result = await notificationService.sendEmail(
