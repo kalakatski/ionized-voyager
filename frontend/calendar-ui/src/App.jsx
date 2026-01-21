@@ -310,6 +310,7 @@ const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const [dates, setDates] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const getVisibleDates = (baseDate) => {
@@ -325,6 +326,7 @@ const Calendar = () => {
   };
 
   const loadData = async () => {
+    setLoading(true);
     const { startStr, endStr, days } = getVisibleDates(currentDate);
     setDates(days);
 
@@ -336,6 +338,8 @@ const Calendar = () => {
     } catch (err) {
       console.error("Failed to load calendar", err);
       setError("Failed to load calendar data. Ensure backend is running.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -521,64 +525,72 @@ const Calendar = () => {
         </button>
       </div>
 
-      <div className="calendar-grid">
-        <div className="calendar-dates-header" style={{ gridTemplateColumns: `repeat(${dates.length}, 1fr)` }}>
-          {dates.map(date => {
-            const isToday = formatDate(date) === todayStr;
-            return (
-              <div
-                key={date.toString()}
-                className="date-cell-header"
-                style={{
-                  background: isToday ? '#e3fcef' : 'transparent',
-                  fontWeight: isToday ? 'bold' : 'normal',
-                  color: isToday ? '#006644' : '#5e6c84',
-                  borderBottom: isToday ? '2px solid #36b37e' : '1px solid #dfe1e6'
-                }}
-              >
-                {date.getDate()} <br /> {date.toLocaleDateString('en-US', { weekday: 'short' })}
-              </div>
-            );
-          })}
+      {loading ? (
+        <div style={{ padding: '60px 20px', textAlign: 'center', background: '#f4f5f7', borderRadius: 8, margin: '20px 0' }}>
+          <div style={{ fontSize: '24px', marginBottom: '10px' }}>⏳</div>
+          <h3 style={{ margin: '0 0 10px 0', color: '#172b4d' }}>Loading Juggernaut Calendar...</h3>
+          <p style={{ margin: 0, color: '#6b778c' }}>Waking up the database. This may take a few seconds.</p>
         </div>
-
-        {data.map(car => (
-          <div key={car.carId} className="car-row">
-            <div className="car-info">
-              <div className="car-name">{car.carName}</div>
-              <div className="car-reg">{car.registration}</div>
-              <span className={`car-status-badge status-${(car.status || 'Available').replace(' ', '-')}`}>
-                {car.status || 'Available'}
-              </span>
-            </div>
-
-            <div className="dates-row">
-              {dates.map(date => {
-                const dateStr = formatDate(date);
-                const details = getDayDetails(car, dateStr);
-                const isToday = dateStr === todayStr;
-
-                return (
-                  <div
-                    key={dateStr}
-                    className="date-cell"
-                    style={{
-                      background: isToday ? '#f4fff4' : 'white',
-                      borderRight: isToday ? '1px solid #36b37e' : '1px solid #dfe1e6',
-                      borderLeft: isToday ? '1px solid #36b37e' : 'none'
-                    }}
-                    onClick={() => handleCellClick(car.carId, dateStr, details)}
-                    title={details?.isAvailable ? "Available" : "Booked/Blocked"}
-                  />
-                );
-              })}
-
-              {/* Overlay bars */}
-              {renderBars(car)}
-            </div>
+      ) : (
+        <div className="calendar-grid">
+          <div className="calendar-dates-header" style={{ gridTemplateColumns: `repeat(${dates.length}, 1fr)` }}>
+            {dates.map(date => {
+              const isToday = formatDate(date) === todayStr;
+              return (
+                <div
+                  key={date.toString()}
+                  className="date-cell-header"
+                  style={{
+                    background: isToday ? '#e3fcef' : 'transparent',
+                    fontWeight: isToday ? 'bold' : 'normal',
+                    color: isToday ? '#006644' : '#5e6c84',
+                    borderBottom: isToday ? '2px solid #36b37e' : '1px solid #dfe1e6'
+                  }}
+                >
+                  {date.getDate()} <br /> {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+
+          {data.map(car => (
+            <div key={car.carId} className="car-row">
+              <div className="car-info">
+                <div className="car-name">{car.carName}</div>
+                <div className="car-reg">{car.registration}</div>
+                <span className={`car-status-badge status-${(car.status || 'Available').replace(' ', '-')}`}>
+                  {car.status || 'Available'}
+                </span>
+              </div>
+
+              <div className="dates-row">
+                {dates.map(date => {
+                  const dateStr = formatDate(date);
+                  const details = getDayDetails(car, dateStr);
+                  const isToday = dateStr === todayStr;
+
+                  return (
+                    <div
+                      key={dateStr}
+                      className="date-cell"
+                      style={{
+                        background: isToday ? '#f4fff4' : 'white',
+                        borderRight: isToday ? '1px solid #36b37e' : '1px solid #dfe1e6',
+                        borderLeft: isToday ? '1px solid #36b37e' : 'none'
+                      }}
+                      onClick={() => handleCellClick(car.carId, dateStr, details)}
+                      title={details?.isAvailable ? "Available" : "Booked/Blocked"}
+                    />
+                  );
+                })}
+
+                {/* Overlay bars */}
+                {renderBars(car)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ marginTop: 20, padding: '12px 16px', background: '#f4f5f7', borderRadius: 8, fontSize: 13, display: 'flex', gap: 24, color: '#42526e', border: '1px solid #ebecf0' }}>
         <div style={{ fontWeight: 600, color: '#172b4d' }}>LEGEND:</div>

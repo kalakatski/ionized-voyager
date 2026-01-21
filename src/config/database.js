@@ -10,9 +10,9 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD,
     // Force SSL for Neon/Remote connections
     ssl: (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') ? { rejectUnauthorized: false } : false,
-    max: 20, // Maximum number of clients in the pool
+    max: 2, // Optimize for Serverless: Keep max low (1-2) to avoid connection overhead
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 5000, // Wait up to 5s for the pool to be ready
 });
 
 // Logs for debugging (exclude sensitive info)
