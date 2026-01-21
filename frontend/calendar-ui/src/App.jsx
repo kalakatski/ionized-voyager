@@ -556,7 +556,7 @@ const Calendar = () => {
         </div>
       ) : (
         <div className="calendar-grid">
-          <div style={{ gridColumn: 1, position: 'sticky', left: 0, zIndex: 3, padding: '15px', fontWeight: 'bold', borderBottom: '1px solid #dfe1e6', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0052cc' }}>
+          <div style={{ gridColumn: 1, position: 'sticky', left: 0, zIndex: 21, padding: '15px', fontWeight: 'bold', borderBottom: '1px solid #dfe1e6', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0052cc' }}>
             {(() => {
               if (dates.length === 0) return '';
               const startM = dates[0].toLocaleString('default', { month: 'short' });
