@@ -340,6 +340,7 @@ const Calendar = () => {
   };
 
   useEffect(() => {
+    console.log('📅 Loading calendar data from:', API_BASE_URL);
     loadData();
   }, [currentDate]); // Reload when month changes
 
@@ -546,8 +547,8 @@ const Calendar = () => {
             <div className="car-info">
               <div className="car-name">{car.carName}</div>
               <div className="car-reg">{car.registration}</div>
-              <span className={`car-status-badge status-${car.status.replace(' ', '-')}`}>
-                {car.status}
+              <span className={`car-status-badge status-${(car.status || 'Available').replace(' ', '-')}`}>
+                {car.status || 'Available'}
               </span>
             </div>
 
