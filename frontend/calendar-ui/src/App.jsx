@@ -482,6 +482,11 @@ const Calendar = () => {
     <div className="calendar-container">
       <div className="calendar-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+          <img
+            src="/juggernaut-logo.png?v=2"
+            alt="Juggernaut Logo"
+            style={{ height: '125px', width: 'auto' }}
+          />
           <h1 style={{ margin: 0 }}>Red Bull Juggernaut Calendar</h1>
 
           <div className="calendar-controls" style={{ display: 'flex', gap: 8 }}>
