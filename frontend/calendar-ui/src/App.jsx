@@ -550,6 +550,15 @@ const Calendar = () => {
         </div>
       ) : (
         <div className="calendar-grid">
+          <div style={{ gridColumn: 1, padding: '15px', fontWeight: 'bold', borderBottom: '1px solid #dfe1e6', background: '#f4f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0052cc' }}>
+            {(() => {
+              if (dates.length === 0) return '';
+              const startM = dates[0].toLocaleString('default', { month: 'short' });
+              const endM = dates[dates.length - 1].toLocaleString('default', { month: 'short' });
+              const year = dates[0].getFullYear();
+              return startM === endM ? `${startM} ${year}` : `${startM} - ${endM} ${year}`;
+            })()}
+          </div>
           <div className="calendar-dates-header" style={{ gridTemplateColumns: `repeat(${dates.length}, 1fr)` }}>
             {dates.map(date => {
               const isToday = formatDate(date) === todayStr;
