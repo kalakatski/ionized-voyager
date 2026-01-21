@@ -41,8 +41,8 @@ app.use((err, req, res, next) => {
 // Export app for Vercel serverless functions
 module.exports = app;
 
-// Start Server (only in development, not on Vercel)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Start Server (Only if NOT running as a Vercel serverless function)
+if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`
 🚀 Juggernaut Booking System Backend
