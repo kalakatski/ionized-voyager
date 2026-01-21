@@ -81,6 +81,40 @@ router.get('/debug', async (req, res) => {
     }
 });
 
+router.post('/migrate', async (req, res) => {
+    try {
+        await dbQuery('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS region TEXT');
+        res.json({ message: 'Migration successful: Added region column' });
+    } catch (error) {
+        res.status(500).json({ error: 'Migration failed: ' + error.message });
+    }
+});
+
+const notificationService = require('../services/notificationService');
+router.post('/debug/email', async (req, res) => {
+    try {
+        const { to } = req.body;
+        if (!to) return res.status(400).json({ error: 'Recipient email required' });
+
+        const result = await notificationService.sendEmail(
+            to,
+            'Juggernaut Test Email',
+            `This is a test email from the Juggernaut Backend.\nUser: ${process.env.SMTP_USER}\nHost: ${process.env.SMTP_HOST}`
+        );
+
+        res.json({
+            result,
+            config: {
+                host: process.env.SMTP_HOST,
+                user: process.env.SMTP_USER ? '***' : 'missing',
+                secure: process.env.SMTP_SECURE
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/seed', async (req, res) => {
     try {
         // Check if cars exist

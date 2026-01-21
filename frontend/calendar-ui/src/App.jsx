@@ -36,6 +36,7 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
     startDate: preselectedDate || formatDate(new Date()),
     endDate: preselectedDate || formatDate(new Date()),
     carId: carId || null,
+    region: 'North',
     notes: ''
   });
   const [cars, setCars] = useState([]);
@@ -136,6 +137,21 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
               <option value="REDBULL_EVENT">Red Bull Event</option>
               <option value="THIRD_PARTY_EVENT">Third Party Event</option>
               <option value="COLLEGE_FEST">College Fest</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Region</label>
+            <select
+              required
+              className="form-select"
+              value={formData.region}
+              onChange={e => setFormData({ ...formData, region: e.target.value })}
+            >
+              <option value="North">North</option>
+              <option value="South">South</option>
+              <option value="East">East</option>
+              <option value="West">West</option>
             </select>
           </div>
 

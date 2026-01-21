@@ -13,7 +13,7 @@ async function createBooking(bookingData) {
     try {
         await client.query('BEGIN');
 
-        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carId, notes } = bookingData;
+        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carId, region, notes } = bookingData;
 
         // Step 1: Check car is available
         const { isAvailable, conflicts } = await checkCarAvailability(carId, startDate, endDate);
@@ -33,8 +33,8 @@ async function createBooking(bookingData) {
 
         // Step 3: Create booking record with car_id
         const bookingQuery = `
-            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, car_id, start_date, end_date, notes, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Confirmed')
+            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, car_id, start_date, end_date, notes, region, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Confirmed')
             RETURNING *
         `;
 
@@ -47,7 +47,9 @@ async function createBooking(bookingData) {
             carId,
             startDate,
             endDate,
-            notes || null
+
+            notes || null,
+            region || null
         ]);
 
         const booking = bookingResult.rows[0];
