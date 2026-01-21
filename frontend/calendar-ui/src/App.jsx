@@ -483,7 +483,7 @@ const Calendar = () => {
       <div className="calendar-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           <img
-            src="/juggernaut-logo.png"
+            src="/juggernaut-logo.png?v=2"
             alt="Juggernaut Logo"
             style={{ height: '125px', width: 'auto' }}
           />
