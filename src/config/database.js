@@ -23,7 +23,8 @@ console.log('Database Configuration:', {
 });
 
 // Test connection
-let mockMode = process.env.USE_MOCK_DB === 'true';
+// Disable Mock Mode entirely for Production
+let mockMode = false;
 
 pool.on('connect', () => {
     console.log('✓ Database connected successfully');
@@ -32,10 +33,7 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
     console.error('Unexpected database error:', err);
-    if (!mockMode) {
-        console.warn('⚠️ Switching to MOCK MODE due to database error.');
-        mockMode = true;
-    }
+    // Crucial: Do NOT switch to mock mode. Let it fail so we know the DB is broken.
 });
 
 const mockStore = {
