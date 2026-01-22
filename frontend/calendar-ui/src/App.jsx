@@ -3,6 +3,15 @@ import API_BASE_URL from './config/api';
 
 // --- Utility Functions ---
 
+// Region to City Mapping
+const REGION_CITIES = {
+  'North': ['Delhi', 'Gurgaon', 'Chandigarh', 'Jaipur', 'Jalandhar', 'Lucknow'],
+  'West': ['Navi Mumbai', 'Mumbai', 'Pune', 'Indore', 'Ahmedabad', 'Goa'],
+  'South West': ['Bengaluru', 'Kochi'],
+  'South East': ['Hyderabad', 'Chennai', 'Coimbatore', 'Vishakapatnam'],
+  'East': ['Kolkata', 'Bhubaneswar', 'Guwahati', 'Patna']
+};
+
 const formatDate = (date) => {
   const d = new Date(date);
   const year = d.getFullYear();
@@ -37,6 +46,7 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
     endDate: preselectedDate || formatDate(new Date()),
     carId: carId || null,
     region: 'North',
+    city: '',
     notes: ''
   });
   const [cars, setCars] = useState([]);
@@ -146,12 +156,30 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
               required
               className="form-select"
               value={formData.region}
-              onChange={e => setFormData({ ...formData, region: e.target.value })}
+              onChange={e => setFormData({ ...formData, region: e.target.value, city: '' })}
             >
               <option value="North">North</option>
-              <option value="South">South</option>
-              <option value="East">East</option>
               <option value="West">West</option>
+              <option value="South West">South West</option>
+              <option value="South East">South East</option>
+              <option value="East">East</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">City</label>
+            <select
+              required
+              className="form-select"
+              value={formData.city}
+              onChange={e => setFormData({ ...formData, city: e.target.value })}
+              disabled={!formData.region}
+              style={{ opacity: !formData.region ? 0.6 : 1 }}
+            >
+              <option value="">{formData.region ? 'Select City' : 'Select Region First'}</option>
+              {formData.region && REGION_CITIES[formData.region]?.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
             </select>
           </div>
 
@@ -204,15 +232,27 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
             <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #dfe1e6', padding: 8, borderRadius: 3 }}>
               {cars.length > 0 ? (
                 cars.map(car => (
-                  <label key={car.carId} style={{ display: 'flex', alignItems: 'center', marginBottom: 6, fontSize: 13, cursor: 'pointer' }}>
+                  <label key={car.carId} style={{ display: 'flex', alignItems: 'center', marginBottom: 6, fontSize: 13, cursor: 'pointer', gap: 8 }}>
                     <input
                       type="radio"
                       name="carSelection"
                       value={car.carId}
                       checked={formData.carId === car.carId}
                       onChange={() => setFormData({ ...formData, carId: car.carId })}
-                      style={{ marginRight: 8 }}
+                      style={{ marginRight: 4 }}
                       required
+                    />
+                    <img
+                      src={car.image_url || 'https://via.placeholder.com/50x35?text=Car'}
+                      alt={car.carName}
+                      style={{
+                        width: 50,
+                        height: 35,
+                        objectFit: 'cover',
+                        borderRadius: 3,
+                        border: '1px solid #dfe1e6'
+                      }}
+                      onError={(e) => { e.target.src = 'https://via.placeholder.com/50x35?text=Car'; }}
                     />
                     <div>
                       <div style={{ fontWeight: 500 }}>{car.carName}</div>
@@ -279,6 +319,11 @@ const BookingDetailsModal = ({ isOpen, onClose, booking, onAction }) => {
               <div style={{ fontSize: 12, color: '#5e6c84', marginTop: 4 }}>
                 <span style={{ fontWeight: 500 }}>Event Region:</span> {booking.region || 'N/A'}
               </div>
+              {booking.city && (
+                <div style={{ fontSize: 12, color: '#5e6c84', marginTop: 2 }}>
+                  <span style={{ fontWeight: 500 }}>City:</span> {booking.city}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -452,13 +497,14 @@ const Calendar = () => {
                 pointerEvents: 'auto',
                 cursor: 'pointer'
               }}
-              title={`Event: ${day.booking.event_name}\nRef: ${day.booking.booking_reference}\nClient: ${day.booking.client_name || 'N/A'}\nDates: ${day.date} to ${endDateStr}`}
+              title={`Event: ${day.booking.event_name}\nCity: ${day.booking.city || 'N/A'}\nRef: ${day.booking.booking_reference}\nClient: ${day.booking.client_name || 'N/A'}\nDates: ${day.date} to ${endDateStr}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleCellClick(car.carId, day.date, day);
               }}
             >
-              {day.booking.event_name}
+              <div style={{ fontWeight: 600 }}>{day.booking.event_name}</div>
+              {day.booking.city && <div style={{ fontSize: '0.85em', opacity: 0.9, marginTop: 2 }}>{day.booking.city}</div>}
             </div>
           );
         }
@@ -509,7 +555,7 @@ const Calendar = () => {
             alt="Juggernaut Logo"
             style={{ height: '125px', width: 'auto' }}
           />
-          <h1 style={{ margin: 0 }}>Red Bull Juggernaut Calendar</h1>
+          <h1 style={{ margin: 0 }}>Event Car Scheduler</h1>
 
           <div className="calendar-controls" style={{ display: 'flex', gap: 8 }}>
             <button className="btn" onClick={() => changeMonth(-1)}>&lt;</button>
@@ -588,8 +634,24 @@ const Calendar = () => {
           {data.map(car => (
             <div key={car.carId} className="car-row">
               <div className="car-info">
-                <div className="car-name">{car.carName}</div>
-                <div className="car-reg">{car.registration}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img
+                    src={car.image_url || 'https://via.placeholder.com/60x40?text=Car'}
+                    alt={car.carName}
+                    style={{
+                      width: 60,
+                      height: 40,
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                      border: '1px solid #dfe1e6'
+                    }}
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/60x40?text=Car'; }}
+                  />
+                  <div>
+                    <div className="car-name">{car.carName}</div>
+                    <div className="car-reg">{car.registration}</div>
+                  </div>
+                </div>
                 <span className={`car-status-badge status-${(car.status || 'Available').replace(' ', '-')}`}>
                   {car.status || 'Available'}
                 </span>
