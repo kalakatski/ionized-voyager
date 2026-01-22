@@ -7,6 +7,9 @@ const carController = require('../controllers/carController');
 const bookingController = require('../controllers/bookingController');
 const calendarController = require('../controllers/calendarController');
 
+// Region routes
+const regionRoutes = require('./regionRoutes');
+
 // Helper for date validation
 const isValidDate = (value) => {
     if (!value) return true; // Optional fields handled separately
@@ -21,6 +24,9 @@ router.get('/cars', carController.getAllCars);
 router.get('/cars/:id', carController.getCarById);
 router.put('/cars/:id/location', carController.updateCarLocation);
 router.put('/cars/:id/status', carController.updateCarStatusManual);
+
+// --- Region & City Routes ---
+router.use('/', regionRoutes);
 
 // --- Booking Routes ---
 router.post('/bookings', [
@@ -89,6 +95,10 @@ router.get('/migrate', async (req, res) => {
         res.status(500).json({ error: 'Migration failed: ' + error.message });
     }
 });
+
+// V2 Migration Endpoint
+const migrationController = require('../controllers/migrationController');
+router.post('/migrate/v2', migrationController.runV2Migration);
 
 const notificationService = require('../services/notificationService');
 router.get('/debug/email', async (req, res) => {
