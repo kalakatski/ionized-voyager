@@ -96,9 +96,73 @@ router.get('/migrate', async (req, res) => {
     }
 });
 
-// V2 Migration Endpoint
-const migrationController = require('../controllers/migrationController');
-router.post('/migrate/v2', migrationController.runV2Migration);
+// V2 Migration Endpoint (Inline SQL for serverless compatibility)
+router.post('/migrate/v2', async (req, res) => {
+    try {
+        console.log('🚀 Starting V2 Migration...');
+
+        // Execute migration steps
+        const steps = [];
+
+        // Step 1: Add image_url column
+        await dbQuery('ALTER TABLE event_cars ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)');
+        steps.push('Added image_url column to event_cars');
+
+        // Step 2: Add is_static column
+        await dbQuery('ALTER TABLE event_cars ADD COLUMN IF NOT EXISTS is_static BOOLEAN DEFAULT FALSE');
+        steps.push('Added is_static column to event_cars');
+
+        // Step 3: Add city column to bookings
+        await dbQuery('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS city VARCHAR(100)');
+        steps.push('Added city column to bookings');
+
+        // Step 4: Add region column to bookings (if not exists)
+        await dbQuery('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS region VARCHAR(50)');
+        steps.push('Added region column to bookings');
+
+        // Step 5: Update region constraints
+        await dbQuery('ALTER TABLE event_cars DROP CONSTRAINT IF EXISTS event_cars_current_region_check');
+        await dbQuery(`ALTER TABLE event_cars ADD CONSTRAINT event_cars_current_region_check 
+                       CHECK (current_region IN ('North', 'West', 'South West', 'South East', 'East', 'South'))`);
+        steps.push('Updated region constraints');
+
+        // Step 6: Update car_number constraint
+        await dbQuery('ALTER TABLE event_cars DROP CONSTRAINT IF EXISTS event_cars_car_number_check');
+        await dbQuery('ALTER TABLE event_cars ADD CONSTRAINT event_cars_car_number_check CHECK (car_number >= 0 AND car_number <= 10)');
+        steps.push('Updated car_number constraints');
+
+        // Step 7: Add Event Car 4 (Static)
+        const carCheck = await dbQuery('SELECT COUNT(*) FROM event_cars WHERE car_number = 3');
+        if (parseInt(carCheck.rows[0].count) === 0) {
+            await dbQuery(`INSERT INTO event_cars (car_number, name, registration, current_region, status, image_url, is_static, preferred_regions)
+                           VALUES (3, 'Event Car 4 (Static)', '', 'West', 'Available', '/cars/car4.png', TRUE, ARRAY['North', 'West', 'South', 'East'])`);
+            steps.push('Added Event Car 4 (Static)');
+        } else {
+            steps.push('Event Car 4 already exists (skipped)');
+        }
+
+        // Step 8: Add indexes
+        await dbQuery('CREATE INDEX IF NOT EXISTS idx_bookings_city ON bookings(city)');
+        await dbQuery('CREATE INDEX IF NOT EXISTS idx_bookings_region ON bookings(region)');
+        steps.push('Added indexes for city and region');
+
+        console.log('✅ V2 Migration completed successfully!');
+
+        res.json({
+            success: true,
+            message: 'V2 Migration completed successfully',
+            steps: steps
+        });
+
+    } catch (error) {
+        console.error('❌ Migration failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Migration failed',
+            message: error.message
+        });
+    }
+});
 
 const notificationService = require('../services/notificationService');
 router.get('/debug/email', async (req, res) => {
