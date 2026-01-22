@@ -12,7 +12,7 @@ const pool = new Pool({
     ssl: (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') ? { rejectUnauthorized: false } : false,
     max: 2, // Optimize for Serverless: Keep max low (1-2) to avoid connection overhead
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000, // Wait up to 5s for the pool to be ready
+    connectionTimeoutMillis: 15000, // Wait up to 15s for the pool to be ready (Neon Cold Start)
 });
 
 // Logs for debugging (exclude sensitive info)
