@@ -69,7 +69,7 @@ async function getCarAvailability(carId, startDate, endDate) {
         for (const date of dates) {
             // Check bookings for this date
             const bookingQuery = `
-                SELECT b.booking_reference, b.event_name, b.event_type, b.client_name
+                SELECT b.booking_reference, b.event_name, b.event_type, b.client_name, b.region, b.city
                 FROM bookings b
                 WHERE b.car_id = $1
                   AND b.status = 'Confirmed'
@@ -195,6 +195,7 @@ async function getUnifiedCalendar(startDate, endDate) {
                 currentLocation: car.current_location || car.currentLocation,
                 status: car.status,
                 preferredRegions: car.preferred_regions || car.preferredRegions,
+                image_url: car.image_url || null,
                 availability
             });
         }
