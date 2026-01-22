@@ -14,20 +14,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Auto-run V2 migration on startup
-const { runAutoMigration } = require('./database/autoMigrate');
-runAutoMigration().then(result => {
-    if (result.success) {
-        console.log('✅ Database is V2 ready');
-    } else if (result.alreadyMigrated) {
-        console.log('✅ Database already migrated to V2');
-    } else {
-        console.warn('⚠️  V2 migration failed, but server will continue:', result.error);
-    }
-}).catch(err => {
-    console.error('⚠️  Migration check failed:', err.message);
-});
-
 // API Routes
 app.use('/api', apiRoutes);
 
