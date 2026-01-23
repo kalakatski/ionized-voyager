@@ -2,6 +2,7 @@ const { query, getClient } = require('../config/database');
 const { generateBookingReference } = require('../utils/helpers');
 const { checkCarAvailability, updateCarStatus } = require('./availabilityService');
 const notificationService = require('./notificationService');
+const { validateBookingRegionCity } = require('../utils/cityValidation');
 
 /**
  * Create a new booking with transaction support
@@ -13,9 +14,18 @@ async function createBooking(bookingData) {
     try {
         await client.query('BEGIN');
 
-        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carId, region, notes } = bookingData;
+        const { eventName, eventType, clientName, clientEmail, startDate, endDate, carId, region, city, notes } = bookingData;
 
-        // Step 1: Check car is available
+        // Step 1: Validate region and city
+        const validation = validateBookingRegionCity({ region, city });
+        if (!validation.valid) {
+            throw {
+                code: 'VALIDATION_ERROR',
+                message: validation.error
+            };
+        }
+
+        // Step 2: Check car is available
         const { isAvailable, conflicts } = await checkCarAvailability(carId, startDate, endDate);
 
         if (!isAvailable) {
@@ -28,13 +38,13 @@ async function createBooking(bookingData) {
             };
         }
 
-        // Step 2: Generate booking reference
+        // Step 3: Generate booking reference
         const bookingReference = generateBookingReference();
 
-        // Step 3: Create booking record with car_id
+        // Step 4: Create booking record with car_id and city
         const bookingQuery = `
-            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, car_id, start_date, end_date, notes, region, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Confirmed')
+            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, car_id, start_date, end_date, notes, region, city, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Confirmed')
             RETURNING *
         `;
 
@@ -47,9 +57,9 @@ async function createBooking(bookingData) {
             carId,
             startDate,
             endDate,
-
             notes || null,
-            region || null
+            region,
+            city
         ]);
 
         const booking = bookingResult.rows[0];

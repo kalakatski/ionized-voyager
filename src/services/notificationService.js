@@ -111,6 +111,8 @@ Booking Details:
 Booking Reference: ${booking.booking_reference}
 Event Name: ${booking.event_name}
 Event Type: ${booking.event_type}
+Region: ${booking.region || 'Not specified'}
+City: ${booking.city || 'Not specified'}
 Dates: ${formatDate(booking.start_date)} to ${formatDate(booking.end_date)}
 
 Event Cars:
@@ -159,6 +161,8 @@ Event Information:
 ------------------
 Event Name: ${booking.event_name}
 Event Type: ${booking.event_type}
+Region: ${booking.region || 'Not specified'}
+City: ${booking.city || 'Not specified'}
 Dates: ${formatDate(booking.start_date)} to ${formatDate(booking.end_date)}
 
 Client Information:

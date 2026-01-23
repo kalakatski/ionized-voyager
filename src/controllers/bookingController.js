@@ -16,6 +16,13 @@ async function createBooking(req, res) {
         res.status(201).json(booking);
 
     } catch (error) {
+        if (error.code === 'VALIDATION_ERROR') {
+            return res.status(400).json({
+                error: 'Validation failed',
+                message: error.message
+            });
+        }
+
         if (error.code === 'BOOKING_CONFLICT') {
             return res.status(409).json({
                 error: 'Booking conflict detected',
