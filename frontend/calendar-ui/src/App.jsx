@@ -495,7 +495,10 @@ const Calendar = () => {
                 left: `${index * 100 / dates.length}%`,
                 width: `${(durationDays * 100 / dates.length) - 0.5}%`,
                 pointerEvents: 'auto',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
               }}
               title={`Event: ${day.booking.event_name}\nCity: ${day.booking.city || 'N/A'}\nRef: ${day.booking.booking_reference}\nClient: ${day.booking.client_name || 'N/A'}\nDates: ${day.date} to ${endDateStr}`}
               onClick={(e) => {

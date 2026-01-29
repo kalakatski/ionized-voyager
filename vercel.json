@@ -4,6 +4,13 @@
     {
       "src": "api/index.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "frontend/calendar-ui/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
@@ -13,7 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/api/index.js"
+      "dest": "/frontend/calendar-ui/$1"
     }
   ]
 }

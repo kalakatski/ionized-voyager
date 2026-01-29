@@ -2,9 +2,10 @@
 -- Insert the three fixed Red Bull Juggernaut event cars
 
 INSERT INTO event_cars (car_number, name, registration, current_region, current_location, status, preferred_regions) VALUES
-(0, 'Event Car 0', 'RED BULL JUGGERNAUT – MH 02 FG 0232', 'West', 'Mumbai', 'Available', ARRAY['West', 'South']),
-(1, 'Event Car 1', 'RED BULL JUGGERNAUT – MH 04 LE 5911', 'North', 'Delhi', 'Available', ARRAY['East', 'North']),
-(2, 'Event Car 2', 'RED BULL JUGGERNAUT – MH 04 LE 5912', 'East', 'Kolkata', 'Available', ARRAY['East', 'North']);
+(0, 'Event Car 1', 'RED BULL JUGGERNAUT – MH 02 FG 0232', 'West', 'Mumbai', 'Available', ARRAY['West', 'South']),
+(1, 'Event Car 2', 'RED BULL JUGGERNAUT – MH 04 LE 5911', 'North', 'Delhi', 'Available', ARRAY['East', 'North']),
+(2, 'Event Car 3', 'RED BULL JUGGERNAUT – MH 04 LE 5912', 'East', 'Kolkata', 'Available', ARRAY['East', 'North']),
+(3, 'Event Car 4', 'RED BULL JUGGERNAUT – STATIC', 'West', 'Mumbai', 'Available', ARRAY['West', 'North', 'East', 'South']);
 
 -- Optional: Insert sample bookings for testing
 -- Uncomment the lines below if you want some sample data

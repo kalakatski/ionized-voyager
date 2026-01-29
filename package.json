@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/database/migrate.js",
+    "migrate:v2": "node src/database/migrateV2.js",
     "seed": "node src/database/seed.js",
     "test": "jest --coverage"
   },
