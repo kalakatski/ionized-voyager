@@ -39,27 +39,28 @@ exports.login = async (req, res) => {
  */
 exports.getBookings = async (req, res) => {
     try {
-        const { status } = req.query; // 'pending', 'approved', 'rejected', or omit for all
+        const { status } = req.query;
 
         let query = `
       SELECT 
         b.id,
-        b.event_name,
-        b.start_date,
-        b.end_date,
+        b.car_id,
+        b.event_date,
+        b.pickup_time,
+        b.return_time,
         b.user_name,
         b.user_email,
         b.user_phone,
-        b.city,
-        b.region,
+        COALESCE(b.city, '') as city,
+        COALESCE(b.region, '') as region,
         b.status,
-        b.approved_by,
+        COALESCE(b.approved_by, '') as approved_by,
         b.approved_at,
-        b.rejection_reason,
+        COALESCE(b.rejection_reason, '') as rejection_reason,
         b.created_at,
         ec.name as car_name,
-        ec.current_region as car_region,
-        ec.image_url as car_image
+        COALESCE(ec.current_region, ec.region, '') as car_region,
+        COALESCE(ec.image_url, '') as car_image
       FROM bookings b
       LEFT JOIN event_cars ec ON b.car_id = ec.id
     `;
