@@ -51,16 +51,12 @@ exports.getBookings = async (req, res) => {
         b.user_name,
         b.user_email,
         b.user_phone,
-        COALESCE(b.city, '') as city,
-        COALESCE(b.region, '') as region,
         b.status,
-        COALESCE(b.approved_by, '') as approved_by,
+        b.approved_by,
         b.approved_at,
-        COALESCE(b.rejection_reason, '') as rejection_reason,
+        b.rejection_reason,
         b.created_at,
-        ec.name as car_name,
-        COALESCE(ec.current_region, ec.region, '') as car_region,
-        COALESCE(ec.image_url, '') as car_image
+        ec.name as car_name
       FROM bookings b
       LEFT JOIN event_cars ec ON b.car_id = ec.id
     `;
