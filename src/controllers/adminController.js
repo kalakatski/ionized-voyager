@@ -41,6 +41,7 @@ exports.getBookings = async (req, res) => {
     try {
         const { status } = req.query;
 
+        // Minimal query using only columns that existed before the migration
         let query = `
       SELECT 
         b.id,
@@ -51,10 +52,6 @@ exports.getBookings = async (req, res) => {
         b.user_name,
         b.user_email,
         b.user_phone,
-        b.status,
-        b.approved_by,
-        b.approved_at,
-        b.rejection_reason,
         b.created_at,
         ec.name as car_name
       FROM bookings b
@@ -63,6 +60,7 @@ exports.getBookings = async (req, res) => {
 
         const params = [];
 
+        // Only filter by status if the column exists
         if (status) {
             query += ' WHERE b.status = $1';
             params.push(status);
@@ -79,7 +77,9 @@ exports.getBookings = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching bookings:', error);
-        res.status(500).json({ error: 'Failed to fetch bookings' });
+        // Log the actual error for debugging
+        console.error('SQL Error details:', error.message, error.stack);
+        res.status(500).json({ error: 'Failed to fetch bookings', details: error.message });
     }
 };
 
