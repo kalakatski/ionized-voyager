@@ -12,8 +12,13 @@ async function createBooking(req, res) {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const booking = await bookingService.createBooking(req.body);
-        res.status(201).json(booking);
+        // Pass isAdmin flag from middleware for auto-approval
+        const booking = await bookingService.createBooking(req.body, req.isAdmin);
+
+        res.status(201).json({
+            ...booking,
+            requiresApproval: !req.isAdmin
+        });
 
     } catch (error) {
         if (error.code === 'VALIDATION_ERROR') {

@@ -7,8 +7,12 @@ const carController = require('../controllers/carController');
 const bookingController = require('../controllers/bookingController');
 const calendarController = require('../controllers/calendarController');
 
-// Region routes
+// Routes
 const regionRoutes = require('./regionRoutes');
+const adminRoutes = require('./adminRoutes');
+
+// Middleware
+const { checkAdmin } = require('../middleware/authMiddleware');
 
 // Helper for date validation
 const isValidDate = (value) => {
@@ -28,8 +32,11 @@ router.put('/cars/:id/status', carController.updateCarStatusManual);
 // --- Region & City Routes ---
 router.use('/', regionRoutes);
 
+// --- Admin Routes ---
+router.use('/admin', adminRoutes);
+
 // --- Booking Routes ---
-router.post('/bookings', [
+router.post('/bookings', checkAdmin, [
     body('eventName').notEmpty().withMessage('Event name is required'),
     body('eventType')
         .notEmpty().withMessage('Event type is required')

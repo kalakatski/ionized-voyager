@@ -69,6 +69,66 @@ async function logNotification(type, recipientEmail, recipientType, bookingId, b
 }
 
 /**
+ * Generate email template based on type
+ */
+function generateEmailTemplate(templateType, data) {
+    const { userName, eventName, carName, startDate, endDate, city, region, reason } = data;
+
+    switch (templateType) {
+        case 'booking_approved':
+            return {
+                subject: `Booking Approved - ${data.eventName}`,
+                body: `
+Hi ${userName},
+
+Great news! Your booking request has been approved.
+
+Booking Details:
+----------------
+Event Name: ${eventName}
+Car: ${carName}
+Dates: ${formatDate(startDate)} to ${formatDate(endDate)}
+City: ${city || 'Not specified'}
+Region: ${region || 'Not specified'}
+
+Your booking is now confirmed and the car will be available for your event.
+
+If you have any questions, please feel free to contact us.
+
+Best regards,
+Red Bull Juggernaut Team
+                `.trim()
+            };
+
+        case 'booking_rejected':
+            return {
+                subject: `Booking Request - ${data.eventName}`,
+                body: `
+Hi ${userName},
+
+We regret to inform you that your booking request could not be approved.
+
+Booking Details:
+----------------
+Event Name: ${eventName}
+Car: ${carName}
+Dates: ${formatDate(startDate)} to ${formatDate(endDate)}
+
+Reason: ${reason || 'The requested dates are not available'}
+
+If you would like to make another booking request for different dates, please visit our booking system.
+
+Best regards,
+Red Bull Juggernaut Team
+                `.trim()
+            };
+
+        default:
+            throw new Error(`Unknown email template: ${templateType}`);
+    }
+}
+
+/**
  * Get cars for a booking
  */
 async function getBookingCars(bookingId) {
@@ -356,9 +416,81 @@ async function sendUpcomingBookingReminders() {
     }
 }
 
+/**
+ * Send admin notification for pending bookings
+ */
+async function sendAdminNotification(type, booking) {
+    try {
+        // Get car information
+        const carResult = await query('SELECT * FROM event_cars WHERE id = $1', [booking.car_id]);
+        const car = carResult.rows[0] || { name: 'Unknown', registration: 'N/A', current_region: 'N/A' };
+        const carInfo = [car];
+
+        let subject, body;
+
+        if (type === 'booking_pending') {
+            subject = `New Booking Pending Approval - ${booking.event_name}`;
+            body = `
+New Booking Request Requires Approval
+
+Booking Details:
+----------------
+Booking Reference: ${booking.booking_reference}
+Event Name: ${booking.event_name}
+Event Type: ${booking.event_type || 'N/A'}
+Region: ${booking.region || 'Not specified'}
+City: ${booking.city || 'Not specified'}
+Dates: ${formatDate(booking.start_date)} to ${formatDate(booking.end_date)}
+
+Client Information:
+-------------------
+Name: ${booking.client_name}
+Email: ${booking.client_email}
+Phone: ${booking.user_phone || 'Not provided'}
+
+Event Car:
+----------
+${car.name} (${car.registration}) - Region: ${car.current_region}
+
+${booking.notes ? `Notes:\n${booking.notes}\n` : ''}
+Login to the admin dashboard to approve or reject this booking.
+Dashboard: ${process.env.BASE_URL}/admin/dashboard
+
+---
+Red Bull Juggernaut Booking System
+            `.trim();
+        }
+
+        // Send to all internal recipients
+        for (const email of INTERNAL_RECIPIENTS) {
+            const emailResult = await sendEmail(email, subject, body);
+            const status = emailResult.success ? 'sent' : 'failed';
+            await logNotification(
+                type,
+                email,
+                'admin',
+                booking.id,
+                booking.booking_reference,
+                subject,
+                body,
+                status,
+                emailResult.error
+            );
+        }
+
+        console.log(`✓ Admin notification sent for ${type}: ${booking.booking_reference}`);
+    } catch (error) {
+        console.error('Error sending admin notification:', error);
+    }
+}
+
 module.exports = {
     sendEmail,
     sendBookingNotification,
     sendConflictNotification,
-    sendUpcomingBookingReminders
+    sendUpcomingBookingReminders,
+    sendAdminNotification,
+    generateEmailTemplate
 };
+
+

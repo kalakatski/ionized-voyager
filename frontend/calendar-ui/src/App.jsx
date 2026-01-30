@@ -34,6 +34,9 @@ const getMonthDates = () => {
   return { dates, startStr: formatDate(start), endStr: formatDate(end) };
 };
 
+import AdminLogin from './AdminLogin';
+import AdminDashboard from './AdminDashboard';
+
 // --- Components ---
 
 const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) => {
@@ -55,7 +58,6 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
 
   // Fetch cars list for the form
   useEffect(() => {
-    // We can use the calendar endpoint to get car metadata
     const today = new Date().toISOString().split('T')[0];
     fetch(`${API_BASE_URL}/api/calendar?startDate=${today}&endDate=${today}`)
       .then(res => res.json())
@@ -87,31 +89,51 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
     };
 
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add admin token if available for auto-approval
+      const token = localStorage.getItem('adminToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 409) {
-          throw new Error(`Conflict: ${data.conflicts.map(c => c.block_reason || c.booking_reference).join(', ')}`);
+        if (response.status === 409 && data.conflicts) {
+          setError(`Car is unavailable for these dates.`);
+        } else if (data.errors) {
+          setError(data.errors.map(e => e.msg).join(', '));
+        } else {
+          setError(data.message || data.error || 'Failed to create booking');
         }
-        throw new Error(data.message || data.error || 'Booking failed');
-      }
+      } else {
+        // Success
+        const message = data.requiresApproval
+          ? 'Booking request submitted! Waiting for admin approval.'
+          : 'Booking confirmed!';
 
-      onSuccess();
-      onClose();
+        alert(message);
+        onSuccess();
+        onClose();
+        // Reset form slightly?
+      }
     } catch (err) {
-      setError(err.message);
+      setError('Network error. Please try again.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
 
   if (!isOpen) return null;
 
@@ -788,5 +810,38 @@ const Calendar = () => {
   );
 };
 
-export default Calendar;
+const App = () => {
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [token, setToken] = useState(localStorage.getItem('adminToken'));
+
+  useEffect(() => {
+    const handleLocationChange = () => setCurrentPath(window.location.pathname);
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
+
+  if (currentPath === '/admin') {
+    return <AdminLogin onLogin={(t) => {
+      setToken(t);
+      // Force reload to update path state effectively if not using a router
+      window.location.href = '/admin/dashboard';
+    }} />;
+  }
+
+  if (currentPath.startsWith('/admin/dashboard')) {
+    if (!token) {
+      window.location.href = '/admin';
+      return null;
+    }
+    return <AdminDashboard token={token} onLogout={() => {
+      localStorage.removeItem('adminToken');
+      setToken(null);
+      window.location.href = '/admin';
+    }} />;
+  }
+
+  return <Calendar />;
+};
+
+export default App;
 

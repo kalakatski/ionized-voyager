@@ -11,7 +11,7 @@ async function checkCarAvailability(carId, startDate, endDate, excludeBookingId 
             SELECT b.id, b.booking_reference, b.event_name, b.start_date, b.end_date
             FROM bookings b
             WHERE b.car_id = $1
-              AND b.status = 'Confirmed'
+              AND b.status = 'approved'
               AND ($2::integer IS NULL OR b.id != $2::integer)
               AND (
                   (b.start_date <= $4 AND b.end_date >= $3) OR
@@ -72,7 +72,7 @@ async function getCarAvailability(carId, startDate, endDate) {
                 SELECT b.booking_reference, b.event_name, b.event_type, b.client_name, b.region, b.city
                 FROM bookings b
                 WHERE b.car_id = $1
-                  AND b.status = 'Confirmed'
+                  AND b.status = 'approved'
                   AND b.start_date <= $2
                   AND b.end_date >= $2
                 LIMIT 1
@@ -146,7 +146,7 @@ async function updateCarStatus(carId) {
             SELECT COUNT(*) as count
             FROM bookings b
             WHERE b.car_id = $1
-              AND b.status = 'Confirmed'
+              AND b.status = 'approved'
               AND b.start_date <= $2
               AND b.end_date >= $2
         `;

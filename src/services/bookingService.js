@@ -7,8 +7,9 @@ const { validateBookingRegionCity } = require('../utils/cityValidation');
 /**
  * Create a new booking with transaction support
  * UPDATED: Each booking now references exactly ONE car_id
+ * UPDATED: Supports admin auto-approval workflow
  */
-async function createBooking(bookingData) {
+async function createBooking(bookingData, isAdmin = false) {
     const client = await getClient();
 
     try {
@@ -41,10 +42,19 @@ async function createBooking(bookingData) {
         // Step 3: Generate booking reference
         const bookingReference = generateBookingReference();
 
-        // Step 4: Create booking record with car_id and city
+        // Step 4: Determine booking status (auto-approve for admins, pending for regular users)
+        const bookingStatus = isAdmin ? 'approved' : 'pending';
+        const approvedBy = isAdmin ? 'admin' : null;
+        const approvedAt = isAdmin ? new Date() : null;
+
+        // Step 5: Create booking record with car_id, city, and approval status
         const bookingQuery = `
-            INSERT INTO bookings (booking_reference, event_name, event_type, client_name, client_email, car_id, start_date, end_date, notes, region, city, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Confirmed')
+            INSERT INTO bookings (
+                booking_reference, event_name, event_type, client_name, client_email, 
+                car_id, start_date, end_date, notes, region, city, 
+                status, approved_by, approved_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
         `;
 
@@ -59,19 +69,28 @@ async function createBooking(bookingData) {
             endDate,
             notes || null,
             region,
-            city
+            city,
+            bookingStatus,
+            approvedBy,
+            approvedAt
         ]);
 
         const booking = bookingResult.rows[0];
 
-        // Step 4: Update car status
+        // Step 6: Update car status
         await updateCarStatus(carId);
 
         await client.query('COMMIT');
 
-        // Step 5: Send notifications (outside transaction)
-        // This will not break booking creation if it fails
-        await notificationService.sendBookingNotification('booking_created', booking);
+        // Step 7: Send notifications (outside transaction)
+        // Different email depending on approval status
+        if (isAdmin) {
+            // Admin created booking - send confirmation immediately
+            await notificationService.sendBookingNotification('booking_created', booking);
+        } else {
+            // Regular user - send admin notification about pending booking
+            await notificationService.sendAdminNotification('booking_pending', booking);
+        }
 
         // Return booking with car details
         return await getBookingByReference(bookingReference);

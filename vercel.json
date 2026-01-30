@@ -19,8 +19,12 @@
       "dest": "/api/index.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/(.*\\..*)",
       "dest": "/frontend/calendar-ui/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/calendar-ui/index.html"
     }
   ]
 }
