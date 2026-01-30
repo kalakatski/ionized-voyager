@@ -41,17 +41,10 @@ exports.getBookings = async (req, res) => {
     try {
         const { status } = req.query;
 
-        // Minimal query using only columns that existed before the migration
+        // Select all columns to avoid column name mismatches
         let query = `
       SELECT 
-        b.id,
-        b.car_id,
-        b.start_date,
-        b.end_date,
-        b.user_name,
-        b.user_email,
-        b.user_phone,
-        b.created_at,
+        b.*,
         ec.name as car_name
       FROM bookings b
       LEFT JOIN event_cars ec ON b.car_id = ec.id
