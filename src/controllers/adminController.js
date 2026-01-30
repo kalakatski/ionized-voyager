@@ -46,9 +46,8 @@ exports.getBookings = async (req, res) => {
       SELECT 
         b.id,
         b.car_id,
-        b.event_date,
-        b.pickup_time,
-        b.return_time,
+        b.start_date,
+        b.end_date,
         b.user_name,
         b.user_email,
         b.user_phone,
