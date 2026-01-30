@@ -1,5 +1,5 @@
 // API Configuration - v2.0 (Production Ready)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? '' : 'http://localhost:3000');
 
 // Debug log
 console.log('[API Config] Environment:', import.meta.env.MODE);
