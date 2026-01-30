@@ -820,7 +820,7 @@ const App = () => {
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
 
-  if (currentPath === '/admin') {
+  if (currentPath === '/admin' || currentPath === '/admin/') {
     return <AdminLogin onLogin={(t) => {
       setToken(t);
       // Force reload to update path state effectively if not using a router
