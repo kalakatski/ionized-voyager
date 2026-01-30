@@ -122,17 +122,17 @@ exports.approveBooking = async (req, res) => {
         // Send approval confirmation email to user
         try {
             const emailContent = generateEmailTemplate('booking_approved', {
-                userName: booking.user_name,
+                userName: booking.client_name,
                 eventName: booking.event_name,
                 carName: booking.car_name,
                 startDate: booking.start_date,
                 endDate: booking.end_date,
-                city: booking.city,
-                region: booking.region
+                city: booking.city || '',
+                region: booking.region || ''
             });
 
             await sendEmail(
-                booking.user_email,
+                booking.client_email,
                 emailContent.subject,
                 emailContent.body
             );
@@ -204,7 +204,7 @@ exports.rejectBooking = async (req, res) => {
         // Send rejection email to user
         try {
             const emailContent = generateEmailTemplate('booking_rejected', {
-                userName: booking.user_name,
+                userName: booking.client_name,
                 eventName: booking.event_name,
                 carName: booking.car_name,
                 startDate: booking.start_date,
@@ -213,7 +213,7 @@ exports.rejectBooking = async (req, res) => {
             });
 
             await sendEmail(
-                booking.user_email,
+                booking.client_email,
                 emailContent.subject,
                 emailContent.body
             );
