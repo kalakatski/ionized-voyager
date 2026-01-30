@@ -40,13 +40,8 @@ const REGION_CITY_MAP = {
         'Mumbai',
         'Pune',
         'Ahmedabad',
-        'Surat',
-        'Nagpur',
-        'Indore',
-        'Bhopal',
         'Goa',
-        'Nashik',
-        'Aurangabad'
+        'Navi Mumbai'
     ]
 };
 
