@@ -340,23 +340,20 @@ async function updateBooking(bookingReference, updateData) {
 /**
  * Cancel a booking (soft delete)
  * UPDATED: Works with single car_id
+ * UPDATED: Uses 'rejected' status to match DB constraint
  */
 async function cancelBooking(bookingReference) {
-    const client = await getClient();
-
     try {
-        await client.query('BEGIN');
-
         const booking = await getBookingByReference(bookingReference);
 
         if (!booking) {
             throw { code: 'NOT_FOUND', message: 'Booking not found' };
         }
 
-        // Update status to Cancelled
-        await client.query(
-            'UPDATE bookings SET status = $1 WHERE booking_reference = $2',
-            ['Cancelled', bookingReference]
+        // Update status to rejected (cancelled)
+        await query(
+            'UPDATE bookings SET status = $1, rejection_reason = $2 WHERE booking_reference = $3',
+            ['rejected', 'Cancelled by user', bookingReference]
         );
 
         // Update car status to free the calendar
@@ -364,19 +361,21 @@ async function cancelBooking(bookingReference) {
             await updateCarStatus(booking.car_id);
         }
 
-        await client.query('COMMIT');
-
         // Send notification
         await notificationService.sendBookingNotification('booking_cancelled', booking);
+
+        // Send to Zapier
+        await zapierService.sendBookingRejected({
+            ...booking,
+            status: 'rejected',
+            rejection_reason: 'Cancelled by user'
+        });
 
         return { message: 'Booking cancelled successfully' };
 
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error('Error cancelling booking:', error);
         throw error;
-    } finally {
-        client.release();
     }
 }
 
