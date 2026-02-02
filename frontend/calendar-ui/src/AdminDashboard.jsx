@@ -246,6 +246,11 @@ const AdminDashboard = ({ token, onLogout }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Debug Info */}
+                <div style={{ marginTop: '2rem', textAlign: 'center', color: '#444', fontSize: '0.8rem' }}>
+                    System v1.1 (Debug Mode) | API: {API_BASE_URL}
+                </div>
             </div>
         </div>
     );
