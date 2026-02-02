@@ -114,10 +114,27 @@ exports.approveBooking = async (req, res) => {
             [id]
         );
 
-        // Send approval confirmation email (Async/Non-blocking attempt)
-        /* TEMPORARILY DISABLED
-        // ... email logic ...
-        */
+        // Send approval confirmation email to user
+        try {
+            const emailContent = generateEmailTemplate('booking_approved', {
+                userName: booking.client_name,
+                eventName: booking.event_name,
+                carName: booking.car_name,
+                startDate: booking.start_date,
+                endDate: booking.end_date,
+                city: booking.city || '',
+                region: booking.region || ''
+            });
+
+            await sendEmail(
+                booking.client_email,
+                emailContent.subject,
+                emailContent.body
+            );
+        } catch (emailError) {
+            console.error('Failed to send approval email:', emailError);
+            // Don't fail the approval if email fails
+        }
 
         res.json({
             success: true,
@@ -164,10 +181,26 @@ exports.rejectBooking = async (req, res) => {
             [id, reason || 'No reason provided']
         );
 
-        // Send rejection email (Async/Non-blocking attempt)
-        /* TEMPORARILY DISABLED
-        // ... email logic ...
-        */
+        // Send rejection email to user
+        try {
+            const emailContent = generateEmailTemplate('booking_rejected', {
+                userName: booking.client_name,
+                eventName: booking.event_name,
+                carName: booking.car_name,
+                startDate: booking.start_date,
+                endDate: booking.end_date,
+                reason: reason || 'The booking could not be approved at this time.'
+            });
+
+            await sendEmail(
+                booking.client_email,
+                emailContent.subject,
+                emailContent.body
+            );
+        } catch (emailError) {
+            console.error('Failed to send rejection email:', emailError);
+            // Don't fail the rejection if email fails
+        }
 
         res.json({
             success: true,
