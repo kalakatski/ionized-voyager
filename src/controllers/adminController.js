@@ -120,6 +120,7 @@ exports.approveBooking = async (req, res) => {
         await client.query('COMMIT');
 
         // Send approval confirmation email to user
+        /* TEMPORARILY DISABLED FOR DEBUGGING
         try {
             const emailContent = generateEmailTemplate('booking_approved', {
                 userName: booking.client_name,
@@ -140,6 +141,7 @@ exports.approveBooking = async (req, res) => {
             console.error('Failed to send approval email:', emailError);
             // Don't fail the approval if email fails
         }
+        */
 
         res.json({
             success: true,
@@ -202,6 +204,7 @@ exports.rejectBooking = async (req, res) => {
         await client.query('COMMIT');
 
         // Send rejection email to user
+        /* TEMPORARILY DISABLED FOR DEBUGGING
         try {
             const emailContent = generateEmailTemplate('booking_rejected', {
                 userName: booking.client_name,
@@ -221,6 +224,7 @@ exports.rejectBooking = async (req, res) => {
             console.error('Failed to send rejection email:', emailError);
             // Don't fail the rejection if email fails
         }
+        */
 
         res.json({
             success: true,
