@@ -51,6 +51,8 @@ const AdminDashboard = ({ token, onLogout }) => {
             const endpoint = `${API_BASE_URL}/api/admin/bookings/${bookingId}/${action}`;
             const body = reason ? JSON.stringify({ reason }) : null;
 
+            console.log(`Sending ${action} request to ${endpoint}`);
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -60,17 +62,27 @@ const AdminDashboard = ({ token, onLogout }) => {
                 body
             });
 
+            console.log(`Response status: ${response.status}`);
+
             if (response.ok) {
                 // Refresh data
-                fetchData();
-                alert(`Booking ${action}d successfully`);
+                await fetchData();
+                alert(`Booking ${action}d successfully!`);
             } else {
-                const data = await response.json();
-                alert(`Error: ${data.error}`);
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const data = await response.json();
+                    console.error('API Error:', data);
+                    alert(`Error: ${data.error || 'Unknown server error'}`);
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON Error:', text);
+                    alert(`Server Error (${response.status}): Check console for details.`);
+                }
             }
         } catch (error) {
             console.error(`Error performing ${action}:`, error);
-            alert('Network error occurred');
+            alert(`Network error: ${error.message}`);
         } finally {
             setActionLoading(null);
         }

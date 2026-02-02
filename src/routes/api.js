@@ -103,6 +103,37 @@ router.get('/migrate', async (req, res) => {
     }
 });
 
+// EMERGENCY DATABASE FIX ENDPOINT
+router.get('/fix-db-schema', async (req, res) => {
+    try {
+        console.log('🔧 Running Emergency DB Fix...');
+        const steps = [];
+
+        // 1. Add approval columns
+        await dbQuery(`
+            ALTER TABLE bookings 
+            ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS rejection_reason TEXT
+        `);
+        steps.push('Added approval columns');
+
+        // 2. Fix client_name/user_name confusion if needed
+        // We don't rename columns blindly, but we ensure at least one exists or we handle it in code.
+        // Assuming code uses 'client_name', let's check if 'user_name' exists and 'client_name' does not, maybe rename?
+        // Safe check: just ensure approval columns for now.
+
+        res.json({
+            success: true,
+            message: 'Database schema fixed successfully!',
+            steps: steps
+        });
+    } catch (error) {
+        console.error('❌ DB Fix Failed:', error);
+        res.status(500).json({ error: error.message, stack: error.stack });
+    }
+});
+
 // V2 Migration Endpoint (Inline SQL for serverless compatibility)
 router.post('/migrate/v2', async (req, res) => {
     try {
