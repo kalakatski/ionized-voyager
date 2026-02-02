@@ -3,6 +3,7 @@ const { generateBookingReference } = require('../utils/helpers');
 const { checkCarAvailability, updateCarStatus } = require('./availabilityService');
 const notificationService = require('./notificationService');
 const { validateBookingRegionCity } = require('../utils/cityValidation');
+const zapierService = require('./zapierService');
 
 /**
  * Create a new booking with transaction support
@@ -91,6 +92,9 @@ async function createBooking(bookingData, isAdmin = false) {
             // Regular user - send admin notification about pending booking
             await notificationService.sendAdminNotification('booking_pending', booking);
         }
+
+        // Step 8: Send to Zapier webhook
+        await zapierService.sendBookingCreated(booking);
 
         // Return booking with car details
         return await getBookingByReference(bookingReference);

@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const { generateToken } = require('../middleware/authMiddleware');
 const { sendEmail, generateEmailTemplate } = require('../services/notificationService');
+const zapierService = require('../services/zapierService');
 
 /**
  * Admin login - verify password and issue JWT token
@@ -136,6 +137,12 @@ exports.approveBooking = async (req, res) => {
             // Don't fail the approval if email fails
         }
 
+        // Send to Zapier webhook
+        await zapierService.sendBookingApproved({
+            ...booking,
+            status: 'approved'
+        });
+
         res.json({
             success: true,
             message: 'Booking approved successfully',
@@ -201,6 +208,13 @@ exports.rejectBooking = async (req, res) => {
             console.error('Failed to send rejection email:', emailError);
             // Don't fail the rejection if email fails
         }
+
+        // Send to Zapier webhook
+        await zapierService.sendBookingRejected({
+            ...booking,
+            status: 'rejected',
+            rejection_reason: reason || 'No reason provided'
+        });
 
         res.json({
             success: true,
