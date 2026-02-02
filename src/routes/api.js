@@ -23,6 +23,17 @@ const isValidDate = (value) => {
     return true;
 };
 
+// --- Health/Keep-Alive Route ---
+// Ping this every 5 minutes to keep DB warm
+router.get('/health', async (req, res) => {
+    try {
+        await require('../config/database').query('SELECT 1');
+        res.json({ status: 'ok', timestamp: new Date() });
+    } catch (error) {
+        res.status(500).json({ status: 'error', error: error.message });
+    }
+});
+
 // --- Car Routes ---
 router.get('/cars', carController.getAllCars);
 router.get('/cars/:id', carController.getCarById);

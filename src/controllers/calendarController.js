@@ -15,6 +15,10 @@ async function getCalendar(req, res) {
         const endDate = req.query.endDate || endOfMonth.toISOString().split('T')[0];
 
         const calendar = await availabilityService.getUnifiedCalendar(startDate, endDate);
+
+        // Add Caching Headers (Cache for 60s, serve stale up to 30s)
+        res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
+
         res.json(calendar);
 
     } catch (error) {
