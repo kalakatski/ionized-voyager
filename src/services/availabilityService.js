@@ -3,10 +3,15 @@ const { query, getClient, isMockMode } = require('../config/database');
 /**
  * Check if a car is available for a date range
  * Returns availability status and conflicts if any
+ * UPDATED: Date-only check disabled to allow multiple bookings per day
  */
 async function checkCarAvailability(carId, startDate, endDate, excludeBookingId = null) {
     try {
-        // Check for booking conflicts
+        // TEMPORARILY DISABLED: Date-based conflict check
+        // This allows multiple bookings on the same day
+        // TODO: Re-enable with time-based overlap detection when ready
+
+        /* ORIGINAL LOGIC (for reference):
         const bookingQuery = `
             SELECT b.id, b.booking_reference, b.event_name, b.start_date, b.end_date
             FROM bookings b
@@ -19,10 +24,10 @@ async function checkCarAvailability(carId, startDate, endDate, excludeBookingId 
                   (b.start_date >= $3 AND b.end_date <= $4)
               )
         `;
-
         const bookingResult = await query(bookingQuery, [carId, excludeBookingId, startDate, endDate]);
+        */
 
-        // Check for date block conflicts
+        // Still check for date blocks (maintenance/service periods)
         const blockQuery = `
             SELECT id, block_reason, block_details, start_date, end_date
             FROM date_blocks
@@ -37,10 +42,7 @@ async function checkCarAvailability(carId, startDate, endDate, excludeBookingId 
         const blockResult = await query(blockQuery, [carId, startDate, endDate]);
 
         const conflicts = [
-            ...bookingResult.rows.map(row => ({
-                type: 'booking',
-                ...row
-            })),
+            // Booking conflicts temporarily disabled
             ...blockResult.rows.map(row => ({
                 type: 'block',
                 ...row

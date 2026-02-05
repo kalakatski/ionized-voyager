@@ -48,14 +48,18 @@ async function createBooking(bookingData, isAdmin = false) {
         const approvedBy = isAdmin ? 'admin' : null;
         const approvedAt = isAdmin ? new Date() : null;
 
-        // Step 5: Create booking record with car_id, city, and approval status
+        // Extract time fields (default to full day if not provided)
+        const startTime = bookingData.startTime || '09:00:00';
+        const endTime = bookingData.endTime || '18:00:00';
+
+        // Step 5: Create booking record with car_id, city, times, and approval status
         const bookingQuery = `
             INSERT INTO bookings (
                 booking_reference, event_name, event_type, client_name, client_email, 
-                car_id, start_date, end_date, notes, region, city, 
+                car_id, start_date, end_date, start_time, end_time, notes, region, city, 
                 status, approved_by, approved_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
         `;
 
@@ -68,6 +72,8 @@ async function createBooking(bookingData, isAdmin = false) {
             carId,
             startDate,
             endDate,
+            startTime,
+            endTime,
             notes || null,
             region,
             city,

@@ -50,7 +50,9 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
     carId: carId || null,
     region: 'North',
     city: '',
-    notes: ''
+    notes: '',
+    startTime: '09:00',
+    endTime: '18:00'
   });
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -234,6 +236,29 @@ const BookingModal = ({ isOpen, onClose, preselectedDate, carId, onSuccess }) =>
                 className="form-input"
                 value={formData.endDate}
                 onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">⏰ Start Time</label>
+              <input
+                type="time"
+                required
+                className="form-input"
+                value={formData.startTime}
+                onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">⏰ End Time</label>
+              <input
+                type="time"
+                required
+                className="form-input"
+                value={formData.endTime}
+                onChange={e => setFormData({ ...formData, endTime: e.target.value })}
               />
             </div>
           </div>

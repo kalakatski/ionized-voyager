@@ -145,6 +145,45 @@ router.get('/fix-db-schema', async (req, res) => {
     }
 });
 
+// ADD TIME FIELDS MIGRATION
+router.get('/add-time-fields', async (req, res) => {
+    try {
+        console.log('⏰ Adding time fields to bookings...');
+        const steps = [];
+
+        // 1. Add time columns
+        await dbQuery(`
+            ALTER TABLE bookings 
+            ADD COLUMN IF NOT EXISTS start_time TIME DEFAULT '09:00:00',
+            ADD COLUMN IF NOT EXISTS end_time TIME DEFAULT '18:00:00'
+        `);
+        steps.push('Added start_time and end_time columns');
+
+        // 2. Update existing bookings
+        await dbQuery(`
+            UPDATE bookings 
+            SET start_time = '09:00:00', end_time = '18:00:00' 
+            WHERE start_time IS NULL OR end_time IS NULL
+        `);
+        steps.push('Set default times for existing bookings');
+
+        // 3. Create index
+        await dbQuery(`
+            CREATE INDEX IF NOT EXISTS idx_bookings_datetime ON bookings(start_date, start_time)
+        `);
+        steps.push('Created datetime index');
+
+        res.json({
+            success: true,
+            message: 'Time fields added successfully!',
+            steps: steps
+        });
+    } catch (error) {
+        console.error('❌ Time fields migration failed:', error);
+        res.status(500).json({ error: error.message, stack: error.stack });
+    }
+});
+
 // V2 Migration Endpoint (Inline SQL for serverless compatibility)
 router.post('/migrate/v2', async (req, res) => {
     try {
